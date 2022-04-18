@@ -42,6 +42,8 @@ func LevelPrefix(next BufferedHandler) BufferedHandler {
 			b.WriteString("[CRITICAL]")
 		case Error:
 			b.WriteString("[ERROR]")
+		case Warn:
+			b.WriteString("[WARN]")
 		case Info:
 			b.WriteString("[INFO]")
 		case Debug:
