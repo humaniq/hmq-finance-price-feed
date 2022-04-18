@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 )
 
 var ErrNoValue = errors.New("no value")
@@ -36,6 +37,7 @@ func (pr *PriceRecord) WithPreviousPrice(price float64) *PriceRecord {
 
 type PriceSvc struct {
 	cache cache.Wrapper
+	ds    *gds.Client
 }
 
 func NewPriceSvc() *PriceSvc {
@@ -45,48 +47,75 @@ func (ps *PriceSvc) WithCache(cache cache.Wrapper) *PriceSvc {
 	ps.cache = cache
 	return ps
 }
+func (ps *PriceSvc) WithGDSClient(ds *gds.Client) *PriceSvc {
+	ps.ds = ds
+	return ps
+}
 func (ps *PriceSvc) SetSymbolPrice(ctx context.Context, symbol string, currency string, price float64, source string) error {
-	current := &PriceRecord{}
-	key := toPriceCacheKey(symbol, currency)
-	if err := ps.cache.Get(ctx, key, current); err != nil && !errors.Is(err, cache.ErrNotFound) {
+	current, err := ps.GetLatestSymbolPrice(ctx, symbol, currency)
+	if err != nil && !errors.Is(err, ErrNoValue) {
 		return err
 	}
-	if err := ps.cache.Set(ctx, key, NewPriceRecord(symbol, currency, price, source).WithPreviousPrice(current.Price), time.Minute); err != nil {
-		return err
+	priceValue := NewPriceRecord(symbol, currency, price, source)
+	if current != nil {
+		priceValue = priceValue.WithPreviousPrice(current.Price)
+	}
+	if ps.ds != nil {
+		if err := ps.ds.Write(ctx, toPriceKey(symbol, currency), priceValue); err != nil {
+			return err
+		}
+	}
+	if ps.cache != nil {
+		if err := cacheSetSymbolPrice(ctx, ps.cache, priceValue); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 func (ps *PriceSvc) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
+	needsCacheRefresh := false
 	if ps.cache != nil {
 		record, err := cacheGetSymbolPrice(ctx, ps.cache, symbol, currency)
-		if err != nil && !errors.Is(err, cache.ErrNotFound) {
-			return nil, err
+		if err != nil {
+			if !errors.Is(err, cache.ErrNotFound) {
+				return nil, err
+			} else {
+				needsCacheRefresh = true
+			}
 		}
 		if err == nil {
 			return record, nil
 		}
 	}
-
-	record := &PriceRecord{}
-	if err := ps.cache.Get(ctx, toPriceCacheKey(symbol, currency), record); err != nil {
-		if errors.Is(err, cache.ErrNotFound) {
-			return nil, ErrNoValue
+	if ps.ds != nil {
+		record := &PriceRecord{}
+		if err := ps.ds.Read(ctx, toPriceKey(symbol, currency), record); err != nil {
+			if errors.Is(err, gds.ErrNotFound) {
+				return nil, ErrNoValue
+			}
+			return nil, err
 		}
-		return nil, err
+		if needsCacheRefresh {
+			if err := cacheSetSymbolPrice(ctx, ps.cache, record); err != nil {
+				return nil, err
+			}
+		}
+		return record, nil
 	}
-	return record, nil
+
+	return nil, ErrNoValue
 }
 
-func toPriceCacheKey(symbol string, currency string) string {
+func toPriceKey(symbol string, currency string) string {
 	return fmt.Sprintf("%s-%s", symbol, currency)
 }
 
 func cacheSetSymbolPrice(ctx context.Context, cache cache.Wrapper, record *PriceRecord) error {
-	return cache.Set(ctx, toPriceCacheKey(record.Symbol, record.Currency), record, time.Minute)
+	return cache.Set(ctx, toPriceKey(record.Symbol, record.Currency), record, time.Minute)
 }
 func cacheGetSymbolPrice(ctx context.Context, cache cache.Wrapper, symbol string, currency string) (*PriceRecord, error) {
 	record := &PriceRecord{}
-	if err := cache.Get(ctx, toPriceCacheKey(symbol, currency), record); err != nil {
+	if err := cache.Get(ctx, toPriceKey(symbol, currency), record); err != nil {
 		return nil, err
 	}
 	return record, nil

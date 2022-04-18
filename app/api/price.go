@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/humaniq/hmq-finance-price-feed/cmd/svc"
+	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
 )
