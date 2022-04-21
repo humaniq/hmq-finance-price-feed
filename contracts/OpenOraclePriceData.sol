@@ -15,6 +15,10 @@ contract OpenOraclePriceData is OpenOracleData {
     ///@notice The event emitted when the timestamp on a price is invalid and it is not written to storage
     event NotWritten(uint64 priorTimestamp, uint256 messageTimestamp, uint256 blockTimestamp);
 
+    event WriteGot(address indexed source, string key, uint64 timestamp, uint64 value);
+    event SourceGot(address indexed source);
+    event RequestGot(bytes bts);
+
     ///@notice The fundamental unit of storage for a reporter source
     struct Datum {
         uint64 timestamp;
@@ -34,7 +38,9 @@ contract OpenOraclePriceData is OpenOracleData {
      * @return The keys that were written
      */
     function put(bytes calldata message, bytes calldata signature) external returns (string memory) {
+        emit RequestGot(message);
         (address source, uint64 timestamp, string memory key, uint64 value) = decodeMessage(message, signature);
+        emit WriteGot(source, key, timestamp, value);
         return putInternal(source, timestamp, key, value);
     }
 
