@@ -17,7 +17,7 @@ type PriceRecord struct {
 	Symbol        string    `json:"symbol"`
 	Currency      string    `json:"currency"`
 	Price         float64   `json:"price"`
-	PreviousPrice float64   `json:"previousPrice"`
+	PreviousPrice float64   `json:"previousPrice,omitempty"`
 	TimeStamp     time.Time `json:"timeStamp"`
 }
 

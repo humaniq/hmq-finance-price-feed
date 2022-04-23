@@ -1,4 +1,4 @@
-package messari
+package prices
 
 import (
 	"context"
@@ -9,35 +9,29 @@ import (
 	"strings"
 )
 
-type PricesMessage struct {
-	Eth float64
-	Btc float64
-	Usd float64
-}
-
-type PriceGetter struct {
+type Messari struct {
 	client *http.Client
 }
 
-func NewPriceGetter() *PriceGetter {
-	return &PriceGetter{}
+func NewMessari() *Messari {
+	return &Messari{}
 }
 
-func (pg *PriceGetter) httpClient() *http.Client {
-	if pg.client == nil {
+func (m *Messari) httpClient() *http.Client {
+	if m.client == nil {
 		return http.DefaultClient
 	}
-	return pg.client
+	return m.client
 }
 
-func (pg *PriceGetter) GetPricesForSymbol(ctx context.Context, symbol string) (*PricesMessage, error) {
+func (m *Messari) GetPricesForSymbol(ctx context.Context, symbol string) (*MessariPricesValue, error) {
 	url := fmt.Sprintf("https://data.messari.io/api/v1/assets/%s/metrics", strings.ToLower(symbol))
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req = req.WithContext(ctx)
-	resp, err := pg.httpClient().Do(req)
+	resp, err := m.httpClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -45,26 +39,32 @@ func (pg *PriceGetter) GetPricesForSymbol(ctx context.Context, symbol string) (*
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("status !ok")
 	}
-	var apiResp apiResponse
+	var apiResp messariApiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, err
 	}
-	return &PricesMessage{
+	return &MessariPricesValue{
 		Eth: apiResp.Data.MarketData.PriceETH,
 		Btc: apiResp.Data.MarketData.PriceBTC,
 		Usd: apiResp.Data.MarketData.PriceUSD,
 	}, nil
 }
 
-type apiResponse struct {
-	Data apiResponseData `json:"data"`
+type messariApiResponse struct {
+	Data messariApiResponseData `json:"data"`
 }
-type apiResponseData struct {
-	Symbol     string                `json:"symbol"`
-	MarketData apiResponseMarketData `json:"market_data"`
+type messariApiResponseData struct {
+	Symbol     string                       `json:"symbol"`
+	MarketData messariApiResponseMarketData `json:"market_data"`
 }
-type apiResponseMarketData struct {
+type messariApiResponseMarketData struct {
 	PriceUSD float64 `json:"price_usd"`
 	PriceBTC float64 `json:"price_btc"`
 	PriceETH float64 `json:"price_eth"`
+}
+
+type MessariPricesValue struct {
+	Eth float64
+	Btc float64
+	Usd float64
 }
