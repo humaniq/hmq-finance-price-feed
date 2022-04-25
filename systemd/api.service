@@ -17,6 +17,7 @@ Environment="APP_LISTEN_ON=:8080"
 #Environment="IMAGE_BUCKET=humaniq-oid-images"
 #Environment="PERMANENT_TOKEN=XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU"
 Environment="OPENAPI_PATH=/home/hmq/pro/repo/hmq-finance-price-feed/spec/prices.openapi.yaml"
+Environment="LOG_LEVEL=DEBUG"
 StandardOutput=append:/home/hmq/pro/app/hmq-finance/prices-api/var/logs/stdout.log
 StandardError=append:/home/hmq/pro/app/hmq-finance/prices-api/var/logs/stderr.log
 
