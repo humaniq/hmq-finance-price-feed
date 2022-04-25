@@ -8,7 +8,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
-ExecStart=/home/hmq/pro/app/hmq-finance/bin/prices-api.bin
+ExecStart=/home/hmq/app/bin/prices-api.bin
 Environment="DATASTORE_PROJECT_ID=humaniq-168420"
 #Environment="SSL_DIR=/home/hmq/pro/app/humanoid/certs"
 #Environment="SSL_CACHE_DIR=/home/hmq/pro/app/humanoid/ssl"
@@ -18,8 +18,8 @@ Environment="APP_LISTEN_ON=:8080"
 #Environment="PERMANENT_TOKEN=XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU"
 Environment="OPENAPI_PATH=/home/hmq/pro/repo/hmq-finance-price-feed/spec/prices.openapi.yaml"
 Environment="LOG_LEVEL=DEBUG"
-StandardOutput=append:/home/hmq/pro/app/hmq-finance/prices-api/var/logs/stdout.log
-StandardError=append:/home/hmq/pro/app/hmq-finance/prices-api/var/logs/stderr.log
+StandardOutput=append:/home/hmq/app/var/logs/prices-api.stdout.log
+StandardError=append:/home/hmq/app/var/logs/prices-api.stderr.log
 
 [Install]
 WantedBy=multi-user.target

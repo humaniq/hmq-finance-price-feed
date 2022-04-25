@@ -8,15 +8,15 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
-ExecStart=/home/hmq/pro/app/hmq-finance/bin/prices-feed.bin
+ExecStart=/home/hmq/app/bin/prices-feed.bin
 Environment="DATASTORE_PROJECT_ID=humaniq-168420"
 Environment="CONTRACT_PRICES_ADDRESS=0xb031C8400226A99f40dB337bAFa67FA1dcB10Dae"
 Environment="CONTRACT_PRICES_CHAIN_ID=1337"
 Environment="CONTRACT_PRICES_PRIVATE_KEY=a1c5faff5d32423caabc1bbc0bec30b6909e612009ca3ca2b009cf577be3ab25"
 Environment="CONTRACT_PRICES_URL=http://catelyn.host.respublica.one:20100"
 Environment="LOG_LEVEL=DEBUG"
-StandardOutput=append:/home/hmq/pro/app/hmq-finance/prices-feed/var/logs/stdout.log
-StandardError=append:/home/hmq/pro/app/hmq-finance/prices-feed/var/logs/stderr.log
+StandardOutput=append:/home/hmq/app/var/logs/prices-feed.stdout.log
+StandardError=append:/home/hmq/app/var/logs/prices-feed.stderr.log
 
 [Install]
 WantedBy=multi-user.target
