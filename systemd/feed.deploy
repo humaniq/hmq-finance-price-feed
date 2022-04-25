@@ -1,7 +1,7 @@
 #!/bin/bash
 cd /home/hmq/pro/repo/hmq-finance-price-feed
 git pull origin
-sudo cp systemd/api.service /etc/systemd/system/prices-api.service
+sudo cp systemd/feed.service /etc/systemd/system/prices-feed.service
 go mod vendor
 go build -o /home/hmq/pro/app/hmq-finance/bin/prices-api.bin /home/hmq/pro/repo/hmq-finance-price-feed/cmd/api/main.go
 sudo systemctl daemon-reload
