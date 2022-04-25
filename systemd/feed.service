@@ -20,6 +20,3 @@ StandardError=append:/home/hmq/pro/app/prices-feed/var/logs/stderr.log
 
 [Install]
 WantedBy=multi-user.target
-
-
-APP_LISTEN_ON=:9003;CONTRACT_PRICES_ADDRESS=0xb031C8400226A99f40dB337bAFa67FA1dcB10Dae;CONTRACT_PRICES_CHAIN_ID=1337;CONTRACT_PRICES_PRIVATE_KEY=a1c5faff5d32423caabc1bbc0bec30b6909e612009ca3ca2b009cf577be3ab25;CONTRACT_PRICES_URL=http://ganache.cubic.local:30101
