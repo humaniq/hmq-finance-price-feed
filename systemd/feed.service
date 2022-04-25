@@ -15,8 +15,8 @@ Environment="CONTRACT_PRICES_CHAIN_ID=1337"
 Environment="CONTRACT_PRICES_PRIVATE_KEY=a1c5faff5d32423caabc1bbc0bec30b6909e612009ca3ca2b009cf577be3ab25"
 Environment="CONTRACT_PRICES_URL=http://catelyn.host.respublica.one:20100"
 
-StandardOutput=append:/home/hmq/pro/app/prices-feed/var/logs/stdout.log
-StandardError=append:/home/hmq/pro/app/prices-feed/var/logs/stderr.log
+StandardOutput=append:/home/hmq/pro/app/hmq-finance/prices-feed/var/logs/stdout.log
+StandardError=append:/home/hmq/pro/app/hmq-finance/prices-feed/var/logs/stderr.log
 
 [Install]
 WantedBy=multi-user.target
