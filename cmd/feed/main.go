@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -31,6 +30,7 @@ func main() {
 		return
 	}
 	backend := svc.NewPriceSvc().WithCache(priceCache)
+	logger.Info(ctx, "BACKEND INIT")
 
 	if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
 		ds, err := gds.NewClient(ctx, dsProjectId, "hmq_prices")
@@ -39,27 +39,45 @@ func main() {
 			return
 		}
 		backend = backend.WithGDSClient(ds)
+		logger.Info(ctx, "DS storage added")
 	}
 
-	feed := svc.NewPriceFeed().
-		WithConsumerChan("log", svc.ConsumerForLog()).
-		WithConsumerChan("ds", svc.ConsumerForDS(backend))
-	if err := feed.Start(); err != nil {
-		log.Fatal(err)
+	chainId, err := strconv.Atoi(os.Getenv("CONTRACT_PRICES_CHAIN_ID"))
+	if err != nil {
+		logger.Fatal(ctx, "chainID fail: %s", err.Error())
+		return
 	}
-	defer feed.WaitForDone()
 
-	go func() {
-		ticker := time.NewTicker(time.Second * 5)
-		for range ticker.C {
-			feed.Queue() <- svc.PriceRecord{
-				Source:    "test",
-				Symbol:    "ETH",
-				Currency:  "USD",
-				Price:     3400,
-				TimeStamp: time.Now(),
-			}
-		}
-	}()
+	pricesContractConsumer, err := svc.NewContractPricesConsumer(
+		ctx,
+		os.Getenv("CONTRACT_PRICES_URL"),
+		os.Getenv("CONTRACT_PRICES_ADDRESS"),
+		os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
+		int64(chainId),
+	)
+	if err != nil {
+		logger.Fatal(ctx, "contract fail: %s", err.Error())
+		return
+	}
+	logger.Info(ctx, "PRICES CONTRACT")
+
+	messariTickerDuration := time.Minute * 5
+	if tickerSeconds, err := strconv.Atoi(os.Getenv("MESSARI_TICKER_SECONDS")); err == nil {
+		messariTickerDuration = time.Second * time.Duration(tickerSeconds)
+	}
+
+	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, []string{"ETH", "USDT", "BTC"})
+
+	deltas := make(map[string]int)
+	deltas["ETH"] = 1
+
+	feed := svc.NewPriceFeedHandler(backend)
+	feed.AddFilterFunc(svc.FilterDeltaFunc(backend, deltas, time.Hour))
+	feed.Start()
+	defer feed.Stop()
+
+	go pricesContractConsumer.Consume(ctx, feed.GetConsumerChan())
+
+	messariPricesProvider.Provide(ctx, feed.In())
 
 }

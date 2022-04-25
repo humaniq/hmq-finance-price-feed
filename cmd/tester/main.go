@@ -10,7 +10,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/contracts"
 	"log"
 	"math/big"
-	"time"
 )
 
 func main() {
@@ -59,24 +58,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tx, err := c.PutPrice(auth, "BTC", "USD", uint64(3420000000), uint64(time.Now().Unix()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println(tx.Value())
-
-	auth.Nonce = big.NewInt(int64(nonce + 1))
-	tx, err = c.PutEth(auth, "BTC", uint64(270000000), uint64(time.Now().Unix()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println(tx.Value())
+	//tx, err := c.PutPrice(auth, "BTC", "USD", uint64(3420000000), uint64(time.Now().Unix()))
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//log.Println(tx.Value())
+	//
+	//auth.Nonce = big.NewInt(int64(nonce + 1))
+	//tx, err = c.PutEth(auth, "BTC", uint64(270000000), uint64(time.Now().Unix()))
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//log.Println(tx.Value())
 
 	value, ts, err := c.GetPrice(&bind.CallOpts{
 		Pending: false,
 		From:    fromAddress,
 		Context: ctx,
-	}, "BTC", "USD")
+	}, "BTC", "ETH")
 	if err != nil {
 		log.Fatal(err)
 	}
