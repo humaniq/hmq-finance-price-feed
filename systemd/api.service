@@ -1,0 +1,24 @@
+[Unit]
+Description=Prices-API service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/home/hmq/pro/app/hmq-finance/bin/prices-api.bin
+Environment="DATASTORE_PROJECT_ID=humaniq-168420"
+#Environment="SSL_DIR=/home/hmq/pro/app/humanoid/certs"
+#Environment="SSL_CACHE_DIR=/home/hmq/pro/app/humanoid/ssl"
+Environment="APP_LISTEN_ON=:8080"
+#Environment="APP_SSL_HOST=signupbot.humaniq.com"
+#Environment="IMAGE_BUCKET=humaniq-oid-images"
+Environment="PERMANENT_TOKEN=XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU"
+Environment="OPENAPI_PATH=/home/hmq/pro/repo/hmq-finance-price-feed/spec/prices.openapi.yaml"
+StandardOutput=append:/home/hmq/pro/app/prices-api/var/logs/stdout.log
+StandardError=append:/home/hmq/pro/app/prices-api/var/logs/stderr.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+[Unit]
+Description=Prices-Feed service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/home/hmq/pro/app/hmq-finance/bin/prices-feed.bin
+Environment="DATASTORE_PROJECT_ID=humaniq-168420"
+StandardOutput=append:/home/hmq/pro/app/prices-feed/var/logs/stdout.log
+StandardError=append:/home/hmq/pro/app/prices-feed/var/logs/stderr.log
+
+[Install]
+WantedBy=multi-user.target
