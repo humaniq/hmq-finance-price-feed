@@ -3,7 +3,7 @@ cd /home/hmq/repo/hmq-finance-price-feed
 git pull origin
 sudo cp systemd/feed.service /etc/systemd/system/prices-feed.service
 go mod vendor
-go build -o /home/hmq/app/bin/prices-feed.bin /home/hmq/pro/repo/hmq-finance-price-feed/cmd/feed/main.go
+go build -o /home/hmq/app/bin/prices-feed.bin /home/hmq/repo/hmq-finance-price-feed/cmd/feed/main.go
 sudo systemctl daemon-reload
 sudo systemctl stop prices-feed
 sudo systemctl start prices-feed
