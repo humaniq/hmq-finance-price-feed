@@ -15,7 +15,7 @@ Environment="DATASTORE_PROJECT_ID=humaniq-168420"
 Environment="APP_LISTEN_ON=:8080"
 #Environment="APP_SSL_HOST=signupbot.humaniq.com"
 #Environment="IMAGE_BUCKET=humaniq-oid-images"
-Environment="PERMANENT_TOKEN=XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU"
+#Environment="PERMANENT_TOKEN=XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU"
 Environment="OPENAPI_PATH=/home/hmq/pro/repo/hmq-finance-price-feed/spec/prices.openapi.yaml"
 StandardOutput=append:/home/hmq/pro/app/prices-api/var/logs/stdout.log
 StandardError=append:/home/hmq/pro/app/prices-api/var/logs/stderr.log
