@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: 'Human-OID cache API'
+  version: '1.0.0'
+  description: 'HumanOID API for caching signup-bot data/keys'
+servers:
+  - url: 'http://104.155.77.190/api/v1'
+    description: 'development/testing environment'
+components:
+  schemas:
+    APIResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        payload:
+          type: any
+    PriceRecord:
+      type: object
+      properties:
+        source:
+          type: string
+          description: the source of the price data
+        symbol:
+          type: string
+          description: Token key representation
+        currency:
+          type: string
+          description: currency representation
+        price:
+          type: number
+        previousPrice:
+          type: number
+        timeStamp:
+          type: string
+paths:
+  /price/{symbol}:
+
+  /prices:
