@@ -72,6 +72,10 @@ func main() {
 					)
 					r.Get("/price/{symbol}", api.GetPriceForSymbolHandlerFunc(backend))
 				})
+				r.Group(func(r chi.Router) {
+					r.Use(httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper))
+					r.Get("/prices", api.GetPricesForListFunc(backend))
+				})
 			}
 		})
 	})
