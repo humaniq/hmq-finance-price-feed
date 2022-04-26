@@ -4,7 +4,7 @@ info:
   version: '1.0.0'
   description: 'HumanOID API for caching signup-bot data/keys'
 servers:
-  - url: 'http://104.155.77.190/api/v1'
+  - url: 'https://apifinance.humaniq.com/api/v1'
     description: 'development/testing environment'
 components:
   schemas:
