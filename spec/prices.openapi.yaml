@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: 'Human-OID cache API'
+  title: 'Prices cache API'
   version: '1.0.0'
-  description: 'HumanOID API for caching signup-bot data/keys'
+  description: 'Prices Cache API'
 servers:
   - url: 'https://apifinance.humaniq.com/api/v1'
     description: 'development/testing environment'
@@ -67,10 +67,10 @@ paths:
                 $ref: '#/components/schemas/APIError'
         500:
           description: internal error
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/APIError'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
   /prices:
     get:
       tags:
