@@ -14,6 +14,7 @@ Environment="CONTRACT_PRICES_ADDRESS=0xb031C8400226A99f40dB337bAFa67FA1dcB10Dae"
 Environment="CONTRACT_PRICES_CHAIN_ID=1337"
 Environment="CONTRACT_PRICES_PRIVATE_KEY=a1c5faff5d32423caabc1bbc0bec30b6909e612009ca3ca2b009cf577be3ab25"
 Environment="CONTRACT_PRICES_URL=http://catelyn.host.respublica.one:20100"
+Environment="MESSARI_TOKEN_LIST=USDT,USDC,ETH"
 Environment="LOG_LEVEL=DEBUG"
 StandardOutput=append:/home/hmq/app/var/logs/prices-feed.stdout.log
 StandardError=append:/home/hmq/app/var/logs/prices-feed.stderr.log

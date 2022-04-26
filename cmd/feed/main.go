@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
@@ -66,7 +67,12 @@ func main() {
 		messariTickerDuration = time.Second * time.Duration(tickerSeconds)
 	}
 
-	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, []string{"ETH", "USDT", "BTC"})
+	messariTokenList := strings.Split(os.Getenv("MESSARI_TOKEN_LIST"), ",")
+	if len(messariTokenList) == 0 {
+		messariTokenList = []string{"ETH", "USDT", "BTC"}
+	}
+
+	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, messariTokenList)
 
 	deltas := make(map[string]int)
 	deltas["ETH"] = 1
