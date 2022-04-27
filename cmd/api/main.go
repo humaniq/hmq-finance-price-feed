@@ -38,7 +38,7 @@ func main() {
 		logger.Fatal(ctx, "priceCache init: %s", err)
 		return
 	}
-	backend := svc.NewPriceSvc().WithCache(priceCache)
+	backend := svc.NewPriceStateSvc().WithCache(priceCache)
 
 	if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
 		ds, err := gds.NewClient(ctx, dsProjectId, "hmq_prices")

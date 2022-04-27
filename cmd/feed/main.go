@@ -30,7 +30,7 @@ func main() {
 		logger.Fatal(ctx, "priceCache init: %s", err)
 		return
 	}
-	backend := svc.NewPriceSvc().WithCache(priceCache)
+	backend := svc.NewPriceStateSvc().WithCache(priceCache)
 	logger.Info(ctx, "BACKEND INIT")
 
 	if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
@@ -78,7 +78,7 @@ func main() {
 	deltas["ETH"] = 1
 
 	feed := svc.NewPriceFeedHandler(backend)
-	feed.AddFilterFunc(svc.FilterDeltaFunc(backend, deltas, time.Hour))
+	feed.WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
 	feed.Start()
 	defer feed.Stop()
 
