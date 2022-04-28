@@ -111,3 +111,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/APIError'
+  /prices/{symbol}:
+    get:
+      tags:
+        - prices
+      parameters:
+        - name: symbol
+          in: path
+        - name: payload
+          in: body
+          required: false
+          description: list of symbols needed
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        200:
+          description: price values for symbol given
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceRecord'
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        404:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        500:
+          description: internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /prices/list:
+    get:
+      tags:
+        - prices
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          description: comma-separated list of symbols needed
+        - name: currency
+          in: query
+          required: false
+          description: comma-separated list of currencies needed
+      responses:
+        200:
+          description: price values for symbol/currency given
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  payload:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PriceRecord'
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        404:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        500:
+          description: internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
