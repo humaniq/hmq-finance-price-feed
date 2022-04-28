@@ -10,58 +10,33 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 )
 
-var ErrNoValue = errors.New("no value")
-
-type PriceRecord struct {
-	Source        string    `json:"source"`
-	Symbol        string    `json:"symbol"`
-	Currency      string    `json:"currency"`
-	Price         float64   `json:"price"`
-	PreviousPrice float64   `json:"previousPrice,omitempty"`
-	TimeStamp     time.Time `json:"timeStamp"`
-}
-
-func NewPriceRecord(symbol string, currency string, price float64, source string) *PriceRecord {
-	return &PriceRecord{
-		Source:    source,
-		Symbol:    symbol,
-		Currency:  currency,
-		Price:     price,
-		TimeStamp: time.Now(),
-	}
-}
-func (pr *PriceRecord) WithPreviousPrice(price float64) *PriceRecord {
-	pr.PreviousPrice = price
-	return pr
-}
-
-type PriceSvc struct {
+type PriceStateSvc struct {
 	cache cache.Wrapper
 	ds    *gds.Client
 }
 
-func NewPriceSvc() *PriceSvc {
-	return &PriceSvc{}
+func NewPriceStateSvc() *PriceStateSvc {
+	return &PriceStateSvc{}
 }
-func (ps *PriceSvc) WithCache(cache cache.Wrapper) *PriceSvc {
+func (ps *PriceStateSvc) WithCache(cache cache.Wrapper) *PriceStateSvc {
 	ps.cache = cache
 	return ps
 }
-func (ps *PriceSvc) WithGDSClient(ds *gds.Client) *PriceSvc {
+func (ps *PriceStateSvc) WithGDSClient(ds *gds.Client) *PriceStateSvc {
 	ps.ds = ds
 	return ps
 }
-func (ps *PriceSvc) SetSymbolPrice(ctx context.Context, symbol string, currency string, price float64, source string) error {
-	current, err := ps.GetLatestSymbolPrice(ctx, symbol, currency)
+func (ps *PriceStateSvc) SetSymbolPrice(ctx context.Context, price *PriceRecord) error {
+	current, err := ps.GetLatestSymbolPrice(ctx, price.Symbol, price.Currency)
 	if err != nil && !errors.Is(err, ErrNoValue) {
 		return err
 	}
-	priceValue := NewPriceRecord(symbol, currency, price, source)
+	priceValue := NewPriceRecord(price.Symbol, price.Currency, price.Price, price.Source)
 	if current != nil {
 		priceValue = priceValue.WithPreviousPrice(current.Price)
 	}
 	if ps.ds != nil {
-		if err := ps.ds.Write(ctx, toPriceKey(symbol, currency), priceValue); err != nil {
+		if err := ps.ds.Write(ctx, toPriceKey(price.Symbol, price.Currency), priceValue); err != nil {
 			return err
 		}
 	}
@@ -72,7 +47,7 @@ func (ps *PriceSvc) SetSymbolPrice(ctx context.Context, symbol string, currency 
 	}
 	return nil
 }
-func (ps *PriceSvc) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
+func (ps *PriceStateSvc) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
 	needsCacheRefresh := false
 	if ps.cache != nil {
 		record, err := cacheGetSymbolPrice(ctx, ps.cache, symbol, currency)

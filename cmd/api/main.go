@@ -38,7 +38,7 @@ func main() {
 		logger.Fatal(ctx, "priceCache init: %s", err)
 		return
 	}
-	backend := svc.NewPriceSvc().WithCache(priceCache)
+	backend := svc.NewPriceStateSvc().WithCache(priceCache)
 
 	if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
 		ds, err := gds.NewClient(ctx, dsProjectId, "hmq_prices")
@@ -48,6 +48,7 @@ func main() {
 		}
 		backend = backend.WithGDSClient(ds)
 	}
+	back := svc.NewPriceStateEstimateWrapper(backend, "ETH")
 
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
@@ -70,11 +71,11 @@ func main() {
 						httpapi.MustHaveStringValueInPathCtxMiddleware("symbol", api.CtxSymbolKey, httpapi.CaseToUpper),
 						httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper),
 					)
-					r.Get("/price/{symbol}", api.GetPriceForSymbolHandlerFunc(backend))
+					r.Get("/price/{symbol}", api.GetPriceForSymbolHandlerFunc(back))
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper))
-					r.Get("/prices", api.GetPricesForListFunc(backend))
+					r.Get("/prices", api.GetPricesForListFunc(back))
 				})
 			}
 		})

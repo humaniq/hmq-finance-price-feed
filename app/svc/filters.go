@@ -7,9 +7,8 @@ import (
 	"time"
 )
 
-func FilterDeltaFunc(back *PriceSvc, deltas map[string]int, expiryPeriod time.Duration) PriceFilterFunc {
+func FilterDeltaFunc(back Pricer, deltas map[string]int, expiryPeriod time.Duration) PriceFilterFunc {
 	return func(ctx context.Context, record *PriceRecord) bool {
-		logger.Warn(ctx, "filter: %+v", record)
 		deltaPercent := deltas[record.Symbol]
 		if deltaPercent == 0 || deltaPercent >= 100 {
 			return true
