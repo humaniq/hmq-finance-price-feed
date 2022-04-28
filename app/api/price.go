@@ -13,7 +13,7 @@ const CtxSymbolKey = "symbol"
 const CtxCurrencyKey = "currency"
 const DefaultCurrency = "ETH"
 
-func GetPriceForSymbolHandlerFunc(state *svc.PriceStateSvc) http.HandlerFunc {
+func GetPriceForSymbolHandlerFunc(state svc.Pricer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		symbol := httpapi.MustGetStringValueFromContext(ctx, CtxSymbolKey)
@@ -33,7 +33,7 @@ func GetPriceForSymbolHandlerFunc(state *svc.PriceStateSvc) http.HandlerFunc {
 	}
 }
 
-func GetPricesForListFunc(state *svc.PriceStateSvc) http.HandlerFunc {
+func GetPricesForListFunc(state svc.Pricer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		currency, available := httpapi.GetStringValueFromContext(ctx, CtxCurrencyKey)
