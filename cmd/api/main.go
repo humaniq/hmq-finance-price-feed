@@ -53,15 +53,21 @@ func main() {
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
 		r.Use(chim.Logger)
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins: []string{"https://*", "http://*"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "x-auth-token"},
+			MaxAge:         300,
+		}))
 		r.Route("/api/v1", func(r chi.Router) {
 			if openapiPath := os.Getenv("OPENAPI_PATH"); openapiPath != "" {
 				r.Group(func(r chi.Router) {
-					r.Use(cors.Handler(cors.Options{
-						AllowedOrigins: []string{"https://*", "http://*"},
-						AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-						AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "x-auth-token"},
-						MaxAge:         300,
-					}))
+					//r.Use(cors.Handler(cors.Options{
+					//	AllowedOrigins: []string{"https://*", "http://*"},
+					//	AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+					//	AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "x-auth-token"},
+					//	MaxAge:         300,
+					//}))
 					r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 						http.ServeFile(w, r, openapiPath)
 					})
