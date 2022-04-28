@@ -72,10 +72,16 @@ func main() {
 						httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper),
 					)
 					r.Get("/price/{symbol}", api.GetPriceForSymbolHandlerFunc(back))
+					r.Get("/prices/{symbol}", api.GetSymbolPricesFunc(back))
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper))
 					r.Get("/prices", api.GetPricesForListFunc(back))
+				})
+				r.Group(func(r chi.Router) {
+					r.Use(api.MayHaveStringListInQueryMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToUpper, ",", []string{"ETH"}))
+					r.Use(api.MayHaveStringListInQueryMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToUpper, ",", []string{"ETH", "USD", "EUR"}))
+					r.Get("/prices/list", api.GetPricesFunc(back))
 				})
 			}
 		})

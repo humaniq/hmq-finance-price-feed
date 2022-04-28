@@ -103,7 +103,7 @@ func (cpg *ContractPriceGetter) GetLatestSymbolPrice(ctx context.Context, symbol
 			From:    cpg.clientAddress,
 			Context: ctx,
 		},
-		symbol, currency,
+		cpg.sourceAddress, symbol, currency,
 	)
 	if err != nil {
 		return nil, err
