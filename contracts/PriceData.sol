@@ -31,12 +31,14 @@ contract PriceData {
     }
 
 
-    function getPrice(address memory source, string memory symbol, string memory currency) external view returns (uint64, uint64) {
-        address source = msg.sender;
+    function getPrice(address source, string memory symbol, string memory currency) external view returns (uint64, uint64) {
         Record storage value = data[source][symbol][currency];
         return (value.value, value.timestamp);
     }
-    function getEthPrice(address memory source, string memory symbol) external view returns (uint64, uint64) {
-        return getPrice(source, source, "ETH");
+    function getEthPrice(address source, string memory symbol) external view returns (uint64, uint64) {
+        return this.getPrice(source, symbol, "ETH");
+    }
+    function getUsdPrice(address source, string memory symbol) external view returns (uint64, uint64) {
+        return this.getPrice(source, symbol, "USD");
     }
 }
