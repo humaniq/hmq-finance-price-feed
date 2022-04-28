@@ -49,18 +49,34 @@ func main() {
 		return
 	}
 
-	pricesContractConsumer, err := svc.NewContractPricesConsumer(
-		ctx,
+	deltas := make(map[string]int)
+	deltas["ETH"] = 1
+
+	contractSetter, err := svc.NewContractPriceSetter(
 		os.Getenv("CONTRACT_PRICES_URL"),
+		int64(chainId),
 		os.Getenv("CONTRACT_PRICES_ADDRESS"),
 		os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
-		int64(chainId),
 	)
-	if err != nil {
-		logger.Fatal(ctx, "contract fail: %s", err.Error())
+	pricesContractConsumer := svc.NewContractPricesConsumer().
+		WithGetter(backend).
+		WithSetter(contractSetter).
+		WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
+
+	pricesStorageConsumer := svc.NewStoreConsumer(backend).
+		WithNext(pricesContractConsumer).
+		WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
+
+	if err := pricesContractConsumer.Start(); err != nil {
+		logger.Fatal(ctx, err.Error())
 		return
 	}
-	logger.Info(ctx, "PRICES CONTRACT")
+	defer pricesContractConsumer.WaitForDone()
+	if err := pricesStorageConsumer.Start(); err != nil {
+		logger.Fatal(ctx, err.Error())
+		return
+	}
+	defer pricesStorageConsumer.WaitForDone()
 
 	messariTickerDuration := time.Minute * 5
 	if tickerSeconds, err := strconv.Atoi(os.Getenv("MESSARI_TICKER_SECONDS")); err == nil {
@@ -74,16 +90,6 @@ func main() {
 
 	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, messariTokenList)
 
-	deltas := make(map[string]int)
-	deltas["ETH"] = 1
-
-	feed := svc.NewPriceFeedHandler(backend)
-	feed.WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
-	feed.Start()
-	defer feed.Stop()
-
-	go pricesContractConsumer.Consume(ctx, feed.GetConsumerChan())
-
-	messariPricesProvider.Provide(ctx, feed.In())
+	messariPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
 
 }

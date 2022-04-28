@@ -37,7 +37,6 @@ type PriceGetter interface {
 type PriceSetter interface {
 	SetSymbolPrice(ctx context.Context, price *PriceRecord) error
 }
-
 type Pricer interface {
 	PriceSetter
 	PriceGetter

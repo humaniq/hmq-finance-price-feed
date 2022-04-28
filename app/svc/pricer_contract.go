@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/humaniq/hmq-finance-price-feed/app/contracts"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type ContractPriceSetter struct {
@@ -117,65 +116,4 @@ func (cpg *ContractPriceGetter) GetLatestSymbolPrice(ctx context.Context, symbol
 		PreviousPrice: 0,
 		TimeStamp:     time.Unix(int64(ts), 0),
 	}, nil
-}
-
-type ContractPricesConsumer struct {
-	getter  PriceGetter
-	setter  PriceSetter
-	in      chan *FeedItem
-	out     []chan<- *FeedItem
-	done    chan interface{}
-	filters []PriceFilterFunc
-	back    Pricer
-}
-
-func NewContractPricesConsumer() (*ContractPricesConsumer, error) {
-	return &ContractPricesConsumer{
-		in:   make(chan *FeedItem),
-		done: make(chan interface{}),
-	}, nil
-}
-func (cpc *ContractPricesConsumer) WithSetter(setter PriceSetter) *ContractPricesConsumer {
-	cpc.setter = setter
-	return cpc
-}
-func (cpc *ContractPricesConsumer) WithGetter(getter PriceGetter) *ContractPricesConsumer {
-	cpc.getter = getter
-	return cpc
-}
-
-func (cpc *ContractPricesConsumer) In() chan<- *FeedItem {
-	return cpc.in
-}
-func (cpc *ContractPricesConsumer) WithNext(next ...chan<- *FeedItem) *ContractPricesConsumer {
-	cpc.out = append(cpc.out, next...)
-	return cpc
-}
-func (cpc *ContractPricesConsumer) WithFilters(fn ...PriceFilterFunc) *ContractPricesConsumer {
-	cpc.filters = append(cpc.filters, fn...)
-	return cpc
-}
-
-func (cpc *ContractPricesConsumer) Start() error {
-	return nil
-}
-func (cpc *ContractPricesConsumer) Stop() error {
-	return nil
-}
-func (cpc *ContractPricesConsumer) WaitForDone() {
-
-}
-func (cpc *ContractPricesConsumer) Consume(ctx context.Context, feed <-chan *FeedItem) error {
-	return cpc.run(ctx, feed)
-}
-
-func (cpc *ContractPricesConsumer) run(ctx context.Context, feed <-chan *FeedItem) error {
-	defer close(cpc.done)
-	for item := range feed {
-		logger.Info(ctx, "PriceContract: %+v", item)
-		for _, price := range item.records {
-
-		}
-	}
-	return nil
 }
