@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices"
 	"os"
 	"strconv"
 	"strings"
@@ -90,6 +91,14 @@ func main() {
 
 	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, messariTokenList)
 
-	messariPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
+	go messariPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
+
+	coingeckoClient, err := prices.CoinGeckoFromFile(os.Getenv("COINGECKO_CONFIG_FILE"))
+	if err != nil {
+		logger.Fatal(ctx, err.Error())
+		return
+	}
+	coingeckoPricesProvider := svc.NewCoinGeckoProvider(time.Minute, coingeckoClient, strings.Split(os.Getenv("COINGECKO_SYMBOL_LIST"), ","), strings.Split("COINGECKO_CURRENCY_LIST", ","))
+	coingeckoPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
 
 }
