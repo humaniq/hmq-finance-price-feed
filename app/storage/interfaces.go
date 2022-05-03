@@ -19,27 +19,28 @@ func (ps *Prices) WithCurrencies(currencies []string) *Prices {
 	}
 	return ps
 }
-func (ps *Prices) PutPrice(currency string, price *Price, filterCurrency bool) *Prices {
+func (ps *Prices) PutPrice(currency string, price *Price, filterCurrency bool) {
 	current, exists := ps.Values[currency]
 	if !exists && filterCurrency {
-		return ps
+		return
 	}
 	if current == nil {
-		ps.Values[currency] = NewPrice(price.Source, price.Price, price.TimeStamp)
-		return ps
+		ps.Values[currency] = price
+		return
 	}
-	if price.TimeStamp.Before(current.TimeStamp) && (current.PreviousPrice == 0 || current.PreviousTimeStamp.Before(price.TimeStamp)) {
-		current.PreviousPrice = price.Price
-		current.PreviousTimeStamp = price.TimeStamp
-		ps.Values[currency] = current
-		return ps
+	if current.TimeStamp.After(price.TimeStamp) {
+		if price.TimeStamp.After(current.PreviousTimeStamp) {
+			current.PreviousPrice = price.Price
+			current.PreviousTimeStamp = price.TimeStamp
+			ps.Values[currency] = current
+			return
+		}
 	}
-	if price.PreviousPrice == 0 || price.PreviousTimeStamp.Before(current.TimeStamp) {
-		price.PreviousPrice = current.Price
+	if current.TimeStamp.After(price.PreviousTimeStamp) {
+		price.PreviousPrice = current.PreviousPrice
 		price.PreviousTimeStamp = current.TimeStamp
 	}
 	ps.Values[currency] = price
-	return ps
 }
 
 type Price struct {
@@ -50,10 +51,10 @@ type Price struct {
 	PreviousTimeStamp time.Time `json:"-"`
 }
 
-func NewPrice(source string, value float64, timeStamp time.Time) *Price {
+func NewPrice(source string, price float64, timeStamp time.Time) *Price {
 	return &Price{
 		Source:    source,
-		Price:     value,
+		Price:     price,
 		TimeStamp: timeStamp,
 	}
 }
