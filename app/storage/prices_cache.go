@@ -4,26 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"time"
+
+	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 )
 
-type CachePricer struct {
+type PricesCache struct {
 	cache  cache.Wrapper
-	next   Pricer
+	next   SymbolPrices
 	expiry time.Duration
 }
 
-func NewCachePricer(cache cache.Wrapper, expiry time.Duration) *CachePricer {
-	return &CachePricer{cache: cache, expiry: expiry}
+func NewPricesCache(cache cache.Wrapper, expiry time.Duration) *PricesCache {
+	return &PricesCache{cache: cache, expiry: expiry}
 }
-func (cp *CachePricer) Wrap(next Pricer) *CachePricer {
+func (cp *PricesCache) Wrap(next SymbolPrices) *PricesCache {
 	cp.next = next
 	return cp
 }
-func (cp *CachePricer) CommitSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
+func (cp *PricesCache) SetSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
 	if cp.next != nil {
-		if err := cp.next.CommitSymbolPrices(ctx, symbol, source, timeStamp, prices); err != nil {
+		if err := cp.next.SetSymbolPrices(ctx, symbol, source, timeStamp, prices); err != nil {
 			return fmt.Errorf("%w: %s", ErrWriting, err)
 		}
 		if err := cacheUnsetSymbolPrices(ctx, cp.cache, symbol); err != nil {
@@ -44,7 +45,7 @@ func (cp *CachePricer) CommitSymbolPrices(ctx context.Context, symbol string, so
 	}
 	return nil
 }
-func (cp *CachePricer) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
+func (cp *PricesCache) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
 	value, err := cacheGetSymbolPrices(ctx, cp.cache, symbol)
 	if err != nil {
 		if !errors.Is(err, cache.ErrNotFound) {

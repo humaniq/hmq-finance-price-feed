@@ -16,14 +16,14 @@ type dsPricesRecord struct {
 	Prices    map[string]float64 `datastore:"prices"`
 }
 
-type DatastorePricer struct {
+type PricesDS struct {
 	client *gds.Client
 }
 
-func NewDatastorePricer(client *gds.Client) *DatastorePricer {
-	return &DatastorePricer{client: client}
+func NewPricesDS(client *gds.Client) *PricesDS {
+	return &PricesDS{client: client}
 }
-func (ds *DatastorePricer) CommitSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
+func (ds *PricesDS) SetSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
 	record, err := dsReadPrices(ctx, ds.client, symbol)
 	if err != nil && !errors.Is(err, gds.ErrNotFound) {
 		return fmt.Errorf("%w: %s", ErrReading, err)
@@ -41,7 +41,7 @@ func (ds *DatastorePricer) CommitSymbolPrices(ctx context.Context, symbol string
 	}
 	return nil
 }
-func (ds *DatastorePricer) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
+func (ds *PricesDS) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
 	pricesDS, err := dsReadPrices(ctx, ds.client, symbol)
 	if err != nil {
 		if errors.Is(err, gds.ErrNotFound) {

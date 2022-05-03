@@ -1,4 +1,4 @@
-package svc
+package storage
 
 import (
 	"context"
@@ -14,14 +14,14 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/contracts"
 )
 
-type ContractPriceSetter struct {
+type PricesContractSetter struct {
 	client     *ethclient.Client
 	transactor *contracts.PriceDataTransactor
 	opts       *bind.TransactOpts
 	address    common.Address
 }
 
-func NewContractPriceSetter(rawUrl string, chainId int64, contractAddressHex string, privateKeyString string) (*ContractPriceSetter, error) {
+func NewPricesContractSetter(rawUrl string, chainId int64, contractAddressHex string, privateKeyString string) (*PricesContractSetter, error) {
 	privateKey, err := crypto.HexToECDSA(privateKeyString)
 	if err != nil {
 		return nil, err
@@ -54,34 +54,42 @@ func NewContractPriceSetter(rawUrl string, chainId int64, contractAddressHex str
 	if err != nil {
 		return nil, err
 	}
-	return &ContractPriceSetter{
+	return &PricesContractSetter{
 		client:     client,
 		transactor: p,
 		opts:       auth,
 		address:    clientAddress,
 	}, nil
 }
-func (cps *ContractPriceSetter) SetSymbolPrice(ctx context.Context, price *PriceRecord) error {
-	nonce, err := cps.client.PendingNonceAt(ctx, cps.address)
+func (pc *PricesContractSetter) SetSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
+	for currency, price := range prices {
+		if err := pc.SetSymbolPrice(ctx, symbol, currency, price, timeStamp); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (pc *PricesContractSetter) SetSymbolPrice(ctx context.Context, symbol string, currency string, price float64, timeStamp time.Time) error {
+	nonce, err := pc.client.PendingNonceAt(ctx, pc.address)
 	if err != nil {
 		return err
 	}
-	auth := cps.opts
+	auth := pc.opts
 	auth.Nonce = big.NewInt(int64(nonce))
-	if _, err := cps.transactor.PutPrice(auth, price.Symbol, price.Currency, uint64(math.Round(price.Price*1000000)), uint64(price.TimeStamp.Unix())); err != nil {
+	if _, err := pc.transactor.PutPrice(auth, symbol, currency, uint64(math.Round(price*1000000)), uint64(timeStamp.Unix())); err != nil {
 		return err
 	}
 	return nil
 }
 
-type ContractPriceGetter struct {
+type PricesContractGetter struct {
 	client        *ethclient.Client
 	caller        *contracts.PriceDataCaller
 	clientAddress common.Address
 	sourceAddress common.Address
 }
 
-func NewContractPriceGetter(rawUrl string, chainId int64, contractAddressHex string, clientAddressHex string, sourceAddressHex string) (*ContractPriceGetter, error) {
+func NewPricesContractGetter(rawUrl string, chainId int64, contractAddressHex string, clientAddressHex string, sourceAddressHex string) (*PricesContractGetter, error) {
 	client, err := ethclient.Dial(rawUrl)
 	if err != nil {
 		return nil, err
@@ -90,30 +98,25 @@ func NewContractPriceGetter(rawUrl string, chainId int64, contractAddressHex str
 	if err != nil {
 		return nil, err
 	}
-	return &ContractPriceGetter{
+	return &PricesContractGetter{
 		client:        client,
 		caller:        p,
 		clientAddress: common.HexToAddress(clientAddressHex),
 		sourceAddress: common.HexToAddress(sourceAddressHex),
 	}, nil
 }
-func (cpg *ContractPriceGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
-	value, ts, err := cpg.caller.GetPrice(
+func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PricesRecord, error) {
+	value, ts, err := pc.caller.GetPrice(
 		&bind.CallOpts{
-			From:    cpg.clientAddress,
+			From:    pc.clientAddress,
 			Context: ctx,
 		},
-		cpg.sourceAddress, symbol, currency,
+		pc.sourceAddress, symbol, currency,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return &PriceRecord{
-		Source:        "contract",
-		Symbol:        symbol,
-		Currency:      currency,
-		Price:         float64(value / 1000000),
-		PreviousPrice: 0,
-		TimeStamp:     time.Unix(int64(ts), 0),
-	}, nil
+	record := NewPricesRecord(symbol, "contract", time.Unix(int64(ts), 0))
+	record.Prices[currency] = float64(value / 1000000)
+	return record, nil
 }

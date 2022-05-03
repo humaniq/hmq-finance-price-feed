@@ -3,28 +3,30 @@ package svc
 import (
 	"context"
 	"errors"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"time"
 )
 
-type PriceStateEstimateWrapper struct {
-	backend Pricer
-	ethalon string
+type PriceStorageEstimateWrapper struct {
+	backend  storage.SymbolPrices
+	standard string
 }
 
-func NewPriceStateEstimateWrapper(backend Pricer, ethalon string) *PriceStateEstimateWrapper {
-	return &PriceStateEstimateWrapper{backend: backend, ethalon: ethalon}
+func NewPriceStorageEstimateWrapper(backend storage.SymbolPrices, standard string) *PriceStorageEstimateWrapper {
+	return &PriceStorageEstimateWrapper{backend: backend, standard: standard}
 }
-func (psew *PriceStateEstimateWrapper) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
+
+func (psew *PriceStorageEstimateWrapper) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error) {
 	value, err := psew.backend.GetLatestSymbolPrice(ctx, symbol, currency)
 	if err != nil {
 		if !errors.Is(err, ErrNoValue) {
 			return nil, err
 		}
-		symbolPrice, err := psew.backend.GetLatestSymbolPrice(ctx, symbol, psew.ethalon)
+		symbolPrice, err := psew.backend.GetLatestSymbolPrice(ctx, symbol, psew.standard)
 		if err != nil {
 			return nil, err
 		}
-		currencyPrice, err := psew.backend.GetLatestSymbolPrice(ctx, currency, psew.ethalon)
+		currencyPrice, err := psew.backend.GetLatestSymbolPrice(ctx, currency, psew.standard)
 		if err != nil {
 			return nil, err
 		}
@@ -41,6 +43,6 @@ func (psew *PriceStateEstimateWrapper) GetLatestSymbolPrice(ctx context.Context,
 	return value, nil
 }
 
-func (psew *PriceStateEstimateWrapper) SetSymbolPrice(ctx context.Context, price *PriceRecord) error {
+func (psew *PriceStorageEstimateWrapper) SetSymbolPrice(ctx context.Context, price *PriceRecord) error {
 	return psew.backend.SetSymbolPrice(ctx, price)
 }

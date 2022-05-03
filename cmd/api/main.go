@@ -48,7 +48,7 @@ func main() {
 		}
 		backend = backend.WithGDSClient(ds)
 	}
-	back := svc.NewPriceStateEstimateWrapper(backend, "ETH")
+	back := svc.NewPriceStorageEstimateWrapper(backend, "ETH")
 
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
