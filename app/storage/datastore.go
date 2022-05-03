@@ -41,7 +41,7 @@ func (ds *DatastorePricer) CommitSymbolPrices(ctx context.Context, symbol string
 	}
 	return nil
 }
-func (ds *DatastorePricer) GetSymbolPrices(ctx context.Context, symbol string, currencies []string) (*Prices, error) {
+func (ds *DatastorePricer) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
 	pricesDS, err := dsReadPrices(ctx, ds.client, symbol)
 	if err != nil {
 		if errors.Is(err, gds.ErrNotFound) {
@@ -49,31 +49,26 @@ func (ds *DatastorePricer) GetSymbolPrices(ctx context.Context, symbol string, c
 		}
 		return nil, fmt.Errorf("%w: %s", ErrReading, err)
 	}
-	prices := NewPrices(pricesDS.Symbol)
-	filterCurrencies := false
-	if currencies != nil {
-		prices = prices.WithCurrencies(currencies)
-		filterCurrencies = true
-	}
+	prices := NewPricesRecord(symbol, pricesDS.Source, pricesDS.TimeStamp)
 	for currency, price := range pricesDS.Prices {
-		prices.PutPrice(currency, NewPrice(pricesDS.Source, price, pricesDS.TimeStamp), filterCurrencies)
+		prices.Prices[currency] = price
 	}
 	return prices, nil
 }
 
 func dsWritePrices(ctx context.Context, ds *gds.Client, record *dsPricesRecord) error {
-	if err := ds.Write(ctx, toPricesKey(record.Symbol), record); err != nil {
+	if err := ds.Write(ctx, toPricesDSKey(record.Symbol), record); err != nil {
 		return fmt.Errorf("%w: %s", ErrWriting, err)
 	}
 	return nil
 }
 func dsReadPrices(ctx context.Context, ds *gds.Client, symbol string) (*dsPricesRecord, error) {
 	var prices dsPricesRecord
-	if err := ds.Read(ctx, toPricesKey(symbol), &prices); err != nil {
+	if err := ds.Read(ctx, toPricesDSKey(symbol), &prices); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrReading, err)
 	}
 	return &prices, nil
 }
-func toPricesKey(symbol string) string {
+func toPricesDSKey(symbol string) string {
 	return symbol
 }
