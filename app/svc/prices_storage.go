@@ -3,6 +3,7 @@ package svc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"time"
 )
@@ -60,7 +61,7 @@ func (ps *PricesStorage) GetPrices(ctx context.Context, symbols []string, curren
 		result[symbol] = prices
 	}
 	if !missing.isEmpty() {
-		stdPricesData, err := ps.backend.GetSymbolPrices(ctx, ps.std)
+		stdPricesData, err := ps.backend.GetSymbolPrices(ctx, fmt.Sprintf("std_%s", ps.std))
 		if err != nil && !errors.Is(err, storage.ErrNotFound) {
 			return nil, err
 		}

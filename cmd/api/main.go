@@ -85,8 +85,8 @@ func main() {
 					r.Get("/prices", api.GetPricesForListFunc(back))
 				})
 				r.Group(func(r chi.Router) {
-					r.Use(api.MayHaveStringListInQueryMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToUpper, ",", []string{"ETH"}))
-					r.Use(api.MayHaveStringListInQueryMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToUpper, ",", []string{"ETH", "USD", "EUR"}))
+					r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToUpper, ",", []string{"ETH"}))
+					r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToUpper, ",", []string{"ETH", "USD", "EUR"}))
 					r.Get("/prices/list", api.GetPricesFunc(back))
 				})
 			}

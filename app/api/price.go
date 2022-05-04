@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
@@ -13,9 +11,8 @@ import (
 
 const CtxSymbolKey = "symbol"
 const CtxCurrencyKey = "currency"
-const DefaultCurrency = "ETH"
 
-func MayHaveStringListInQueryMiddlewareFunc(queryKey string, ctxKey string, caseCast int, delimiter string, defaults []string) func(next http.Handler) http.Handler {
+func MustHaveStringListInQueryOrDefaultsMiddlewareFunc(queryKey string, ctxKey string, caseCast int, delimiter string, defaults []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -49,7 +46,7 @@ func MustGetStringListFromCtx(ctx context.Context, key string) []string {
 	return ctx.Value(key).([]string)
 }
 
-func GetPricesFunc(state svc.PriceGetter) http.HandlerFunc {
+func GetPricesFunc(state svc.PricesGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
@@ -58,96 +55,28 @@ func GetPricesFunc(state svc.PriceGetter) http.HandlerFunc {
 			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("invalid symbol/currency mapping"), http.StatusBadRequest)
 			return
 		}
-		resultMap := make(map[string][]*svc.PriceRecord)
-		for _, symbol := range symbols {
-			prices := make([]*svc.PriceRecord, 0, len(currencies))
-			for _, currency := range currencies {
-				price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
-				if err != nil {
-					if !errors.Is(err, svc.ErrNoValue) {
-						httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("internal error"), http.StatusInternalServerError)
-						return
-					}
-					continue
-				}
-				prices = append(prices, price)
-			}
-			resultMap[symbol] = prices
+
+		prices, err := state.GetPrices(ctx, symbols, currencies)
+		if err != nil {
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("internal error"), http.StatusInternalServerError)
+			return
 		}
+
+		resultMap := make(map[string][]PriceRecord)
+
+		for symbol, symbolPrices := range prices {
+			records := make([]PriceRecord, 0, len(symbolPrices))
+			for currency, price := range symbolPrices {
+				records = append(records, PriceRecord{
+					Source:    price.Source,
+					Currency:  currency,
+					Price:     price.Value,
+					TimeStamp: price.TimeStamp,
+				})
+			}
+			resultMap[symbol] = records
+		}
+
 		httpext.JSON(w, httpapi.NewOkResponse().WithPayload(resultMap))
 	}
 }
-
-func GetPriceForSymbolHandlerFunc(state svc.PriceGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		symbol := httpapi.MustGetStringValueFromContext(ctx, CtxSymbolKey)
-		currency, available := httpapi.GetStringValueFromContext(ctx, CtxCurrencyKey)
-		if !available {
-			currency = DefaultCurrency
-		}
-		price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
-		if err != nil {
-			if errors.Is(err, svc.ErrNoValue) {
-				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("not found"), http.StatusNotFound)
-				return
-			}
-			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("internal error"), http.StatusInternalServerError)
-		}
-		httpext.JSON(w, price)
-	}
-}
-
-func GetSymbolPricesFunc(state svc.PriceGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		symbol := httpapi.MustGetStringValueFromContext(ctx, CtxSymbolKey)
-		var list []string
-		if err := json.NewDecoder(r.Body).Decode(&list); err != nil || len(list) == 0 {
-			list = defaultCurrencyList
-		}
-		result := make([]*svc.PriceRecord, 0, len(list))
-		for _, currency := range list {
-			price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
-			if err != nil {
-				if !errors.Is(err, svc.ErrNoValue) {
-					httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error reading price"), http.StatusInternalServerError)
-					return
-				}
-				continue
-			}
-			result = append(result, price)
-		}
-		httpext.JSON(w, result)
-	}
-}
-
-func GetPricesForListFunc(state svc.PriceGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		currency, available := httpapi.GetStringValueFromContext(ctx, CtxCurrencyKey)
-		if !available {
-			currency = DefaultCurrency
-		}
-		var list []string
-		if err := json.NewDecoder(r.Body).Decode(&list); err != nil || len(list) == 0 {
-			list = defaultSymbolList
-		}
-		result := make([]*svc.PriceRecord, 0, len(list))
-		for _, symbol := range list {
-			price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
-			if err != nil {
-				if !errors.Is(err, svc.ErrNoValue) {
-					httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error reading price"), http.StatusInternalServerError)
-					return
-				}
-				continue
-			}
-			result = append(result, price)
-		}
-		httpext.JSON(w, result)
-	}
-}
-
-var defaultSymbolList = []string{"ETH", "BTC", "USDT"}
-var defaultCurrencyList = []string{"ETH", "USD", "EUR"}

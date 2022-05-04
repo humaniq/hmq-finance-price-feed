@@ -1,4 +1,4 @@
-package svc
+package legacy
 
 import (
 	"context"
@@ -15,31 +15,6 @@ type PriceRecord struct {
 	Price         float64   `json:"price"`
 	PreviousPrice float64   `json:"previousPrice,omitempty"`
 	TimeStamp     time.Time `json:"timeStamp"`
-}
-
-func NewPriceRecord(symbol string, currency string, price float64, source string) *PriceRecord {
-	return &PriceRecord{
-		Source:    source,
-		Symbol:    symbol,
-		Currency:  currency,
-		Price:     price,
-		TimeStamp: time.Now(),
-	}
-}
-func (pr *PriceRecord) WithPreviousPrice(price float64) *PriceRecord {
-	pr.PreviousPrice = price
-	return pr
-}
-
-type PriceGetter interface {
-	GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*PriceRecord, error)
-}
-type PriceSetter interface {
-	SetSymbolPrice(ctx context.Context, price *PriceRecord) error
-}
-type Pricer interface {
-	PriceSetter
-	PriceGetter
 }
 
 type PriceFilterFunc func(ctx context.Context, record *PriceRecord) bool
