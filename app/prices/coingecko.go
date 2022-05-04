@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"net/http"
 	"os"
 	"strings"
@@ -39,11 +40,13 @@ func CoinGeckoFromFile(configFilePath string) (*CoinGecko, error) {
 	}, nil
 }
 func (cg *CoinGecko) GetterFunc(symbols []string, currencies []string) func(ctx context.Context) (map[string]map[string]float64, error) {
+	ctx := context.Background()
 	requestSymbols := make(map[string]string)
 	requestIds := make([]string, 0, len(symbols))
 	for _, symbol := range symbols {
 		id, found := cg.symbols[strings.ToLower(symbol)]
 		if !found {
+			logger.Error(ctx, "symbol not found: %s", symbol)
 			continue
 		}
 		requestSymbols[id] = symbol
@@ -55,6 +58,8 @@ func (cg *CoinGecko) GetterFunc(symbols []string, currencies []string) func(ctx 
 		if cg.currencies[strings.ToLower(currency)] {
 			requestCurrencies = append(requestCurrencies, strings.ToLower(currency))
 			currenciesMapper[strings.ToLower(currency)] = currency
+		} else {
+			logger.Error(ctx, "currency not found: %s", currency)
 		}
 	}
 
