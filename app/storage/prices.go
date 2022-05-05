@@ -2,32 +2,17 @@ package storage
 
 import (
 	"context"
-	"time"
+
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 )
 
-type PricesRecord struct {
-	Symbol    string
-	Source    string
-	TimeStamp time.Time
-	Prices    map[string]float64
+type PricesSaver interface {
+	SavePrices(ctx context.Context, key string, value *state.Prices) error
 }
-
-func NewPricesRecord(symbol string, source string, timeStamp time.Time) *PricesRecord {
-	return &PricesRecord{
-		Symbol:    symbol,
-		Source:    source,
-		TimeStamp: timeStamp,
-		Prices:    make(map[string]float64),
-	}
+type PricesLoader interface {
+	LoadPrices(ctx context.Context, key string) (*state.Prices, error)
 }
-
-type SymbolPricesSetter interface {
-	SetSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error
-}
-type SymbolPricesGetter interface {
-	GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error)
-}
-type SymbolPrices interface {
-	SymbolPricesSetter
-	SymbolPricesGetter
+type Prices interface {
+	PricesLoader
+	PricesSaver
 }
