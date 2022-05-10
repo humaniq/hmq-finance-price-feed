@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/app/svc"
+	"errors"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"net/http"
 	"strings"
 )
@@ -46,7 +48,7 @@ func MustGetStringListFromCtx(ctx context.Context, key string) []string {
 	return ctx.Value(key).([]string)
 }
 
-func GetPricesFunc(state svc.PricesGetter) http.HandlerFunc {
+func GetPricesFunc(backend storage.PricesLoader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
@@ -56,25 +58,32 @@ func GetPricesFunc(state svc.PricesGetter) http.HandlerFunc {
 			return
 		}
 
-		prices, err := state.GetPrices(ctx, symbols, currencies)
-		if err != nil {
-			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("internal error"), http.StatusInternalServerError)
-			return
-		}
-
 		resultMap := make(map[string][]PriceRecord)
 
-		for symbol, symbolPrices := range prices {
-			records := make([]PriceRecord, 0, len(symbolPrices))
-			for currency, price := range symbolPrices {
-				records = append(records, PriceRecord{
-					Source:    price.Source,
-					Currency:  currency,
-					Price:     price.Value,
-					TimeStamp: price.TimeStamp,
-				})
+		for _, currency := range currencies {
+			prices, err := backend.LoadPrices(ctx, currency)
+			if err != nil {
+				if errors.Is(err, storage.ErrNotFound) {
+					logger.Warn(ctx, "[API] prices not found for %s", currency)
+					continue
+				}
+				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
+				return
 			}
-			resultMap[symbol] = records
+			values := prices.Values()
+			for _, symbol := range symbols {
+				list := resultMap[symbol]
+				value, found := values[symbol]
+				if found {
+					list = append(list, PriceRecord{
+						Source:    value.Source,
+						Currency:  value.Currency,
+						TimeStamp: value.TimeStamp,
+						Price:     value.Price,
+					})
+				}
+				resultMap[symbol] = list
+			}
 		}
 
 		httpext.JSON(w, httpapi.NewOkResponse().WithPayload(resultMap))

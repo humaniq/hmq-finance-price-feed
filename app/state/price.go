@@ -21,34 +21,34 @@ func NewPrice(source string, symbol string, currency string, price float64, time
 }
 
 type Prices struct {
-	currency      string
-	values        map[string]*Price
+	Currency      string            `json:"currency"`
+	Val           map[string]*Price `json:"values"`
 	changed       []string
 	commitFilters []CommitFilterFunc
 }
 
 func NewPrices(currency string) *Prices {
 	return &Prices{
-		currency: currency,
-		values:   make(map[string]*Price),
+		Currency: currency,
+		Val:      make(map[string]*Price),
 		changed:  []string{},
 	}
 }
 func (ps *Prices) Key() string {
-	return ps.currency
+	return ps.Currency
 }
 func (ps *Prices) WithCommitFilters(fn ...CommitFilterFunc) *Prices {
 	ps.commitFilters = append(ps.commitFilters, fn...)
 	return ps
 }
 func (ps *Prices) Commit(price *Price) bool {
-	current := ps.values[price.Symbol]
+	current := ps.Val[price.Symbol]
 	for _, filter := range ps.commitFilters {
 		if !filter(current, price) {
 			return false
 		}
 	}
-	ps.values[price.Symbol] = price
+	ps.Val[price.Symbol] = price
 	ps.changed = append(ps.changed, price.Symbol)
 	return true
 }
@@ -58,26 +58,26 @@ func (ps *Prices) Stage() {
 func (ps *Prices) Changes() []*Price {
 	result := make([]*Price, 0, len(ps.changed))
 	for _, change := range ps.changed {
-		result = append(result, ps.values[change])
+		result = append(result, ps.Val[change])
 	}
 	return result
 }
 func (ps *Prices) Values() map[string]*Price {
-	return ps.values
+	return ps.Val
 }
 func (ps *Prices) Prices() []*Price {
-	result := make([]*Price, 0, len(ps.values))
-	for _, val := range ps.values {
+	result := make([]*Price, 0, len(ps.Val))
+	for _, val := range ps.Val {
 		result = append(result, val)
 	}
 	return result
 }
 func (ps *Prices) Estimate(symbol string, currency string) *Price {
-	symbolPrice, found := ps.values[symbol]
+	symbolPrice, found := ps.Val[symbol]
 	if !found {
 		return nil
 	}
-	currencyPrice, found := ps.values[currency]
+	currencyPrice, found := ps.Val[currency]
 	if !found {
 		return nil
 	}

@@ -70,7 +70,7 @@ func cacheSetPrices(ctx context.Context, cache cache.Wrapper, key string, prices
 }
 func cacheGetPrices(ctx context.Context, cache cache.Wrapper, key string) (*state.Prices, error) {
 	value := state.NewPrices(key)
-	if err := cache.Get(ctx, toPricesCacheKey(key), &value); err != nil {
+	if err := cache.Get(ctx, toPricesCacheKey(key), value); err != nil {
 		return nil, err
 	}
 	return value, nil

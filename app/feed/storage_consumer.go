@@ -83,7 +83,9 @@ func (sc *StorageConsumer) Run() {
 					continue
 				}
 				nextItems = append(nextItems, currencyPrices.Changes()...)
-				logger.Info(ctx, "[%s] prices changed: %+v", sc.name, currencyPrices.Changes())
+				for _, priceChange := range currencyPrices.Changes() {
+					logger.Info(ctx, "[%s] price changed: %+v", sc.name, priceChange)
+				}
 				currencyPrices.Stage()
 			}
 		}
