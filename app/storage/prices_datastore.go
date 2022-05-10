@@ -6,14 +6,30 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 )
 
 type dsPricesRecord struct {
-	Symbol    string             `datastore:"symbol"`
-	Source    string             `datastore:"source"`
-	TimeStamp time.Time          `datastore:"timeStamp"`
-	Prices    map[string]float64 `datastore:"prices"`
+	Key       string         `datastore:"key"`
+	TimeStamp time.Time      `datastore:"timeStamp"`
+	Prices    []*state.Price `datastore:"prices"`
+}
+
+func (r *dsPricesRecord) ToState() *state.Prices {
+	prices := state.NewPrices(r.Key)
+	for _, price := range r.Prices {
+		prices.Commit(price)
+	}
+	prices.Stage()
+	return prices
+}
+func dsPricesRecordFromState(value *state.Prices) *dsPricesRecord {
+	return &dsPricesRecord{
+		Key:       value.Key(),
+		TimeStamp: time.Now(),
+		Prices:    value.Prices(),
+	}
 }
 
 type PricesDS struct {
@@ -23,48 +39,33 @@ type PricesDS struct {
 func NewPricesDS(client *gds.Client) *PricesDS {
 	return &PricesDS{client: client}
 }
-func (ds *PricesDS) SetSymbolPrices(ctx context.Context, symbol string, source string, timeStamp time.Time, prices map[string]float64) error {
-	record, err := dsReadPrices(ctx, ds.client, symbol)
-	if err != nil && !errors.Is(err, gds.ErrNotFound) {
-		return fmt.Errorf("%w: %s", ErrReading, err)
-	}
-	if record != nil && record.TimeStamp.After(timeStamp) {
-		return ErrTooLate
-	}
-	if err := dsWritePrices(ctx, ds.client, &dsPricesRecord{
-		Symbol:    symbol,
-		Source:    source,
-		TimeStamp: timeStamp,
-		Prices:    prices,
-	}); err != nil {
+
+func (ds *PricesDS) SavePrices(ctx context.Context, key string, value *state.Prices) error {
+	if err := dsWritePrices(ctx, ds.client, key, dsPricesRecordFromState(value)); err != nil {
 		return fmt.Errorf("%w: %s", ErrWriting, err)
 	}
 	return nil
 }
-func (ds *PricesDS) GetSymbolPrices(ctx context.Context, symbol string) (*PricesRecord, error) {
-	pricesDS, err := dsReadPrices(ctx, ds.client, symbol)
+func (ds *PricesDS) LoadPrices(ctx context.Context, key string) (*state.Prices, error) {
+	pricesDS, err := dsReadPrices(ctx, ds.client, key)
 	if err != nil {
 		if errors.Is(err, gds.ErrNotFound) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("%w: %s", ErrReading, err)
 	}
-	prices := NewPricesRecord(symbol, pricesDS.Source, pricesDS.TimeStamp)
-	for currency, price := range pricesDS.Prices {
-		prices.Prices[currency] = price
-	}
-	return prices, nil
+	return pricesDS.ToState(), nil
 }
 
-func dsWritePrices(ctx context.Context, ds *gds.Client, record *dsPricesRecord) error {
-	if err := ds.Write(ctx, toPricesDSKey(record.Symbol), record); err != nil {
+func dsWritePrices(ctx context.Context, ds *gds.Client, key string, record *dsPricesRecord) error {
+	if err := ds.Write(ctx, toPricesDSKey(key), record); err != nil {
 		return fmt.Errorf("%w: %s", ErrWriting, err)
 	}
 	return nil
 }
-func dsReadPrices(ctx context.Context, ds *gds.Client, symbol string) (*dsPricesRecord, error) {
+func dsReadPrices(ctx context.Context, ds *gds.Client, key string) (*dsPricesRecord, error) {
 	var prices dsPricesRecord
-	if err := ds.Read(ctx, toPricesDSKey(symbol), &prices); err != nil {
+	if err := ds.Read(ctx, toPricesDSKey(key), &prices); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrReading, err)
 	}
 	return &prices, nil

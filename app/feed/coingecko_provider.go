@@ -1,7 +1,8 @@
-package legacy
+package feed
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"time"
 
@@ -17,7 +18,7 @@ func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols 
 	return &CoinGeckoPriceProvider{get: client.GetterFunc(symbols, currencies), ticker: time.NewTicker(tick)}
 }
 
-func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- *FeedItem) error {
+func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- []*state.Price) error {
 	for range cgpp.ticker.C {
 		result, err := cgpp.get(ctx)
 		if err != nil {
@@ -25,19 +26,19 @@ func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- *Fe
 			continue
 		}
 		now := time.Now()
-		var item FeedItem
+		var items []*state.Price
 		for key, value := range result {
 			for k, v := range value {
-				item.records = append(item.records, &PriceRecord{
-					Source:    "coingecko",
-					Symbol:    key,
-					Currency:  k,
-					Price:     v,
-					TimeStamp: now,
-				})
+				items = append(items, state.NewPrice(
+					"coingecko",
+					key,
+					k,
+					v,
+					now,
+				))
 			}
 		}
-		feed <- &item
+		feed <- items
 	}
 	return nil
 }

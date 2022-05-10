@@ -62,28 +62,47 @@ func (ps *Prices) Changes() []*Price {
 	}
 	return result
 }
+func (ps *Prices) Values() map[string]*Price {
+	return ps.values
+}
+func (ps *Prices) Prices() []*Price {
+	result := make([]*Price, 0, len(ps.values))
+	for _, val := range ps.values {
+		result = append(result, val)
+	}
+	return result
+}
+func (ps *Prices) Estimate(symbol string, currency string) *Price {
+	symbolPrice, found := ps.values[symbol]
+	if !found {
+		return nil
+	}
+	currencyPrice, found := ps.values[currency]
+	if !found {
+		return nil
+	}
+	return &Price{
+		TimeStamp: time.Now(),
+		Source:    "estimate",
+		Symbol:    symbol,
+		Currency:  currency,
+		Price:     symbolPrice.Price / currencyPrice.Price,
+	}
+}
 
 type CommitFilterFunc func(p0 *Price, p1 *Price) bool
 
-func CommitCurrenciesFilterFunc(currencies []string) CommitFilterFunc {
-	mapper := make(map[string]bool)
-	for _, currency := range currencies {
-		mapper[currency] = true
-	}
+func CommitCurrenciesFilterFunc(currencies map[string]bool) CommitFilterFunc {
 	return func(p0 *Price, p1 *Price) bool {
-		if mapper[p1.Currency] {
+		if currencies[p1.Currency] {
 			return true
 		}
 		return false
 	}
 }
-func CommitSymbolsFilterFunc(symbols []string) CommitFilterFunc {
-	mapper := make(map[string]bool)
-	for _, symbol := range symbols {
-		mapper[symbol] = true
-	}
+func CommitSymbolsFilterFunc(symbols map[string]bool) CommitFilterFunc {
 	return func(p0 *Price, p1 *Price) bool {
-		if mapper[p1.Symbol] {
+		if symbols[p1.Symbol] {
 			return true
 		}
 		return false
@@ -107,5 +126,14 @@ func CommitPricePercentDiffFilterFinc(diffs map[string]int) CommitFilterFunc {
 			return true
 		}
 		return false
+	}
+}
+
+func CommitTimestampFilterFunc() CommitFilterFunc {
+	return func(p0 *Price, p1 *Price) bool {
+		if p0.TimeStamp.After(p1.TimeStamp) {
+			return false
+		}
+		return true
 	}
 }

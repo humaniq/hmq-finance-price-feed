@@ -2,35 +2,25 @@ package legacy
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"sync"
 )
 
 type ContractPricesConsumer struct {
-	getter      PriceGetter
-	setter      PriceSetter
 	in          chan *FeedItem
-	next        []AsyncConsumer
 	done        chan interface{}
-	filters     []PriceFilterFunc
-	back        Pricer
+	back        *storage.PricesContractSetter
 	leasesMutex sync.Mutex
 	leases      int
 }
 
 func NewContractPricesConsumer() *ContractPricesConsumer {
 	return &ContractPricesConsumer{
+		back:
 		in:   make(chan *FeedItem),
 		done: make(chan interface{}),
 	}
-}
-func (cpc *ContractPricesConsumer) WithSetter(setter PriceSetter) *ContractPricesConsumer {
-	cpc.setter = setter
-	return cpc
-}
-func (cpc *ContractPricesConsumer) WithGetter(getter PriceGetter) *ContractPricesConsumer {
-	cpc.getter = getter
-	return cpc
 }
 
 func (cpc *ContractPricesConsumer) Lease() chan<- *FeedItem {
