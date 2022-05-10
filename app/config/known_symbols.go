@@ -295,3 +295,11 @@ var SymbolsKnown = map[string]string{
 	"amp":         "AMP",
 	"fsw":         "FSW",
 }
+
+func KnownSymbolsChecker() map[string]bool {
+	mapper := make(map[string]bool)
+	for key, _ := range SymbolsKnown {
+		mapper[key] = true
+	}
+	return mapper
+}

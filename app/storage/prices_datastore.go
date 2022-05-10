@@ -49,10 +49,7 @@ func (ds *PricesDS) SavePrices(ctx context.Context, key string, value *state.Pri
 func (ds *PricesDS) LoadPrices(ctx context.Context, key string) (*state.Prices, error) {
 	pricesDS, err := dsReadPrices(ctx, ds.client, key)
 	if err != nil {
-		if errors.Is(err, gds.ErrNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("%w: %s", ErrReading, err)
+		return nil, err
 	}
 	return pricesDS.ToState(), nil
 }
@@ -66,6 +63,9 @@ func dsWritePrices(ctx context.Context, ds *gds.Client, key string, record *dsPr
 func dsReadPrices(ctx context.Context, ds *gds.Client, key string) (*dsPricesRecord, error) {
 	var prices dsPricesRecord
 	if err := ds.Read(ctx, toPricesDSKey(key), &prices); err != nil {
+		if errors.Is(err, gds.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("%w: %s", ErrReading, err)
 	}
 	return &prices, nil

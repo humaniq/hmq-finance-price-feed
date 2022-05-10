@@ -2,12 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
+	"github.com/humaniq/hmq-finance-price-feed/app/feed"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
@@ -22,72 +29,42 @@ func main() {
 	}
 	ctx := context.Background()
 
-	//priceCache, err := cache.NewLRU(1000)
-	//if err != nil {
-	//	logger.Fatal(ctx, "priceCache init: %s", err)
-	//	return
-	//}
-	//backend := svc.NewPriceStateSvc().WithCache(priceCache)
-	//logger.Info(ctx, "BACKEND INIT")
-	//
-	//if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
-	//	ds, err := gds.NewClient(ctx, dsProjectId, "hmq_pricer")
-	//	if err != nil {
-	//		logger.Fatal(ctx, "priceDS init: %s", err)
-	//		return
-	//	}
-	//	backend = backend.WithGDSClient(ds)
-	//	logger.Info(ctx, "DS storage added")
-	//}
-	//
-	//chainId, err := strconv.Atoi(os.Getenv("CONTRACT_PRICES_CHAIN_ID"))
-	//if err != nil {
-	//	logger.Fatal(ctx, "chainID fail: %s", err.Error())
-	//	return
-	//}
-	//
-	//deltas := make(map[string]int)
-	//deltas["ETH"] = 1
-	//
-	//contractSetter, err := svc.NewContractPriceSetter(
-	//	os.Getenv("CONTRACT_PRICES_URL"),
-	//	int64(chainId),
-	//	os.Getenv("CONTRACT_PRICES_ADDRESS"),
-	//	os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
-	//)
-	//pricesContractConsumer := svc.NewContractPricesConsumer().
-	//	WithGetter(backend).
-	//	WithSetter(contractSetter).
-	//	WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
-	//
-	//pricesStorageConsumer := svc.NewStoreConsumer(backend).
-	//	WithNext(pricesContractConsumer).
-	//	WithFilters(svc.FilterDeltaFunc(backend, deltas, time.Hour))
-	//
-	//if err := pricesContractConsumer.Start(); err != nil {
-	//	logger.Fatal(ctx, err.Error())
-	//	return
-	//}
-	//defer pricesContractConsumer.WaitForDone()
-	//if err := pricesStorageConsumer.Start(); err != nil {
-	//	logger.Fatal(ctx, err.Error())
-	//	return
-	//}
-	//defer pricesStorageConsumer.WaitForDone()
-	//
-	//messariTickerDuration := time.Minute * 5
-	//if tickerSeconds, err := strconv.Atoi(os.Getenv("MESSARI_TICKER_SECONDS")); err == nil {
-	//	messariTickerDuration = time.Second * time.Duration(tickerSeconds)
-	//}
-	//
-	//messariTokenList := strings.Split(os.Getenv("MESSARI_TOKEN_LIST"), ",")
-	//if len(messariTokenList) == 0 {
-	//	messariTokenList = []string{"ETH", "USDT", "BTC"}
-	//}
-	//
-	//messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, messariTokenList)
-	//
-	//go messariPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
+	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
+	if dsKind == "" {
+		dsKind = "hmq_current_prices"
+	}
+	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
+	if err != nil {
+		logger.Fatal(ctx, "gdsClient init: %s", err)
+		return
+	}
+	backend := storage.NewPricesDS(gdsClient)
+
+	nativeCurrencyList := strings.Split(os.Getenv("NATIVE_CURRENCY_LIST"), ",")
+	if len(nativeCurrencyList) == 0 || (len(nativeCurrencyList) == 1 && nativeCurrencyList[0] == "") {
+		nativeCurrencyList = config.DefaultNativeCurrencyList
+	}
+
+	pricesState := make(map[string]*state.Prices)
+	for _, currency := range nativeCurrencyList {
+		currencyState, err := backend.LoadPrices(ctx, currency)
+		if err != nil {
+			if !errors.Is(err, storage.ErrNotFound) {
+				logger.Fatal(ctx, "prices state init: %s", err)
+				return
+			}
+			currencyState = state.NewPrices(currency)
+		}
+		currencyState = currencyState.WithCommitFilters(
+			state.CommitTimestampFilterFunc(),
+			state.CommitCurrenciesFilterFunc(map[string]bool{currency: true}),
+			state.CommitSymbolsFilterFunc(config.KnownSymbolsChecker()),
+			state.CommitPricePercentDiffFilterFinc(config.DefaultSymbolDiffs()),
+		)
+		pricesState[currency] = currencyState
+	}
+
+	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
 
 	coingeckoClient, err := prices.CoinGeckoFromFile(os.Getenv("COINGECKO_CONFIG_FILE"))
 	if err != nil {
@@ -97,12 +74,22 @@ func main() {
 	logger.Trace(ctx, "%+v", coingeckoClient)
 
 	smb := strings.Split(os.Getenv("COINGECKO_SYMBOL_LIST"), ",")
+	for index, value := range smb {
+		smb[index] = strings.ToLower(value)
+	}
 	cur := strings.Split(os.Getenv("COINGECKO_CURRENCY_LIST"), ",")
+	for index, value := range cur {
+		cur[index] = strings.ToLower(value)
+	}
 
-	fn := coingeckoClient.GetterFunc(smb, cur)
+	go dsConsumer.Run()
+	defer dsConsumer.WaitForDone()
 
-	logger.Info(ctx, "%+v", fn)
-	//coingeckoPricesProvider := svc.NewCoinGeckoProvider(time.Minute, coingeckoClient, strings.Split(os.Getenv("COINGECKO_SYMBOL_LIST"), ","), strings.Split("COINGECKO_CURRENCY_LIST", ","))
-	//coingeckoPricesProvider.Provide(ctx, pricesContractConsumer.Lease())
+	coingeckoProvider := feed.NewCoinGeckoProvider(time.Minute*5, coingeckoClient, smb, cur)
+	if err := coingeckoProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
+		logger.Fatal(ctx, "provider fail: %s", err)
+		dsConsumer.Release()
+		return
+	}
 
 }

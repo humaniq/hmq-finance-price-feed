@@ -131,6 +131,9 @@ func CommitPricePercentDiffFilterFinc(diffs map[string]int) CommitFilterFunc {
 
 func CommitTimestampFilterFunc() CommitFilterFunc {
 	return func(p0 *Price, p1 *Price) bool {
+		if p0 == nil {
+			return true
+		}
 		if p0.TimeStamp.After(p1.TimeStamp) {
 			return false
 		}

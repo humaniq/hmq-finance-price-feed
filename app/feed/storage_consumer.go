@@ -1,6 +1,8 @@
 package feed
 
 import (
+	"context"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"sync"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/state"
@@ -15,15 +17,18 @@ type StorageConsumer struct {
 	leasesMutex sync.Mutex
 	leases      int
 	state       map[string]*state.Prices
+	name        string
 }
 
-func NewStorageConsumer(backend storage.PricesSaver, pricesState map[string]*state.Prices) *StorageConsumer {
-	return &StorageConsumer{
+func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.Prices) *StorageConsumer {
+	consumer := &StorageConsumer{
 		back:  backend,
 		in:    make(chan []*state.Price),
 		done:  make(chan interface{}),
 		state: pricesState,
+		name:  name,
 	}
+	return consumer
 }
 func (sc *StorageConsumer) In() chan<- []*state.Price {
 	return sc.in
@@ -53,6 +58,39 @@ func (sc *StorageConsumer) Release() {
 	}
 }
 
-func (sc *StorageConsumer) run() {
-
+func (sc *StorageConsumer) Run() {
+	defer close(sc.done)
+	defer func() {
+		for _, next := range sc.next {
+			next.Release()
+		}
+	}()
+	ctx := context.Background()
+	for prices := range sc.in {
+		for _, price := range prices {
+			currencyPrices, found := sc.state[price.Currency]
+			if !found {
+				logger.Info(ctx, "[%s] no currency available, skipping: %+v", sc.name, price)
+				continue
+			}
+			currencyPrices.Commit(price)
+		}
+		var nextItems []*state.Price
+		for currency, currencyPrices := range sc.state {
+			if len(currencyPrices.Changes()) > 0 {
+				if err := sc.back.SavePrices(ctx, currency, currencyPrices); err != nil {
+					logger.Error(ctx, "[%s] error saving prices: %s", sc.name, err)
+					continue
+				}
+				nextItems = append(nextItems, currencyPrices.Changes()...)
+				logger.Info(ctx, "[%s] prices changed: %+v", sc.name, currencyPrices.Changes())
+				currencyPrices.Stage()
+			}
+		}
+		if len(nextItems) > 0 {
+			for _, next := range sc.next {
+				next.In() <- nextItems
+			}
+		}
+	}
 }
