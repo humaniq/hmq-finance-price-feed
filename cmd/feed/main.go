@@ -71,7 +71,34 @@ func main() {
 		logger.Fatal(ctx, err.Error())
 		return
 	}
-	logger.Trace(ctx, "%+v", coingeckoClient)
+
+	if contractUrl := os.Getenv("CONTRACT_PRICES_URL"); contractUrl != "" {
+		chainIdString := os.Getenv("CONTRACT_CHAIN_ID")
+		chainId, err := strconv.ParseInt(chainIdString, 10, 64)
+		if err != nil {
+			chainId = 1337
+		}
+		contractBackend, err := storage.NewPricesContractSetter(
+			contractUrl,
+			chainId,
+			os.Getenv("CONTRACT_PRICES_ADDRESS"),
+			os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
+		)
+		if err != nil {
+			logger.Fatal(ctx, "err getting contract backend: %s", err)
+			return
+		}
+
+		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, pricesState)
+		go contractConsumer.Run()
+		defer contractConsumer.WaitForDone()
+		dsConsumer = dsConsumer.WithNext(
+			contractConsumer,
+		)
+	}
+
+	go dsConsumer.Run()
+	defer dsConsumer.WaitForDone()
 
 	smb := strings.Split(os.Getenv("COINGECKO_SYMBOL_LIST"), ",")
 	for index, value := range smb {
@@ -81,9 +108,6 @@ func main() {
 	for index, value := range cur {
 		cur[index] = strings.ToLower(value)
 	}
-
-	go dsConsumer.Run()
-	defer dsConsumer.WaitForDone()
 
 	coingeckoProvider := feed.NewCoinGeckoProvider(time.Minute*5, coingeckoClient, smb, cur)
 	if err := coingeckoProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
