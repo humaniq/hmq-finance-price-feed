@@ -12,8 +12,8 @@ import (
 )
 
 type CoinGecko struct {
-	symbols    map[string]string
-	currencies map[string]bool
+	symbols    map[string]string `yaml:"symbols"`
+	currencies map[string]bool   `yaml:"currencies"`
 }
 
 func CoinGeckoFromFile(configFilePath string) (*CoinGecko, error) {
