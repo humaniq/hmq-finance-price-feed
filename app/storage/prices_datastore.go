@@ -11,9 +11,9 @@ import (
 )
 
 type dsPricesRecord struct {
-	Key       string         `datastore:"key"`
-	TimeStamp time.Time      `datastore:"timeStamp"`
-	Prices    []*state.Price `datastore:"prices"`
+	Key       string              `datastore:"key"`
+	TimeStamp time.Time           `datastore:"timeStamp"`
+	Prices    []*state.PriceValue `datastore:"prices"`
 }
 
 func (r *dsPricesRecord) ToState() *state.Prices {

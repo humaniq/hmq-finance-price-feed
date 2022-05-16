@@ -7,11 +7,11 @@ import (
 )
 
 type Provider interface {
-	Provide(ctx context.Context, feed chan<- []*state.Price) error
+	Provide(ctx context.Context, feed chan<- []*state.PriceValue) error
 }
 
 type Releaser interface {
-	Lease() chan<- []*state.Price
+	Lease() chan<- []*state.PriceValue
 	Release()
 }
 
@@ -20,7 +20,7 @@ type Waiter interface {
 }
 
 type Consumer interface {
-	In() chan<- []*state.Price
+	In() chan<- []*state.PriceValue
 	Waiter
 	Releaser
 }

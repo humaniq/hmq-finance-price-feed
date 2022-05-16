@@ -115,7 +115,7 @@ func NewPricesContractGetter(rawUrl string, chainId int64, contractAddressHex st
 		sourceAddress: common.HexToAddress(sourceAddressHex),
 	}, nil
 }
-func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*state.Price, error) {
+func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*state.PriceValue, error) {
 	value, ts, err := pc.caller.GetPrice(
 		&bind.CallOpts{
 			From:    pc.clientAddress,
@@ -126,6 +126,6 @@ func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol
 	if err != nil {
 		return nil, err
 	}
-	record := state.NewPrice("contract", symbol, currency, float64(value/1000000), time.Unix(int64(ts), 0))
+	record := state.NewPriceValue("contract", symbol, currency, float64(value/1000000), time.Unix(int64(ts), 0))
 	return record, nil
 }

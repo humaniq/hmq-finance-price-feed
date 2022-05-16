@@ -18,7 +18,7 @@ func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols 
 	return &CoinGeckoPriceProvider{get: client.GetterFunc(symbols, currencies), ticker: time.NewTicker(tick)}
 }
 
-func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- []*state.Price) error {
+func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- []*state.PriceValue) error {
 	for range cgpp.ticker.C {
 		result, err := cgpp.get(ctx)
 		if err != nil {
@@ -26,10 +26,10 @@ func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- []*
 			continue
 		}
 		now := time.Now()
-		var items []*state.Price
+		var items []*state.PriceValue
 		for key, value := range result {
 			for k, v := range value {
-				items = append(items, state.NewPrice(
+				items = append(items, state.NewPriceValue(
 					"coingecko",
 					key,
 					k,

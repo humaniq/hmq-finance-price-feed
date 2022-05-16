@@ -24,14 +24,14 @@ func NewGeoCurrencyPriceProvider(tick time.Duration, client *prices.IPCurrencyAP
 	}
 }
 
-func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- []*state.Price) error {
+func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- []*state.PriceValue) error {
 	symbolsList := make([]string, 0, len(gcpp.symbols))
 	for symbol, _ := range gcpp.symbols {
 		symbolsList = append(symbolsList, symbol)
 	}
 	logger.Info(ctx, "providing geocurrency: %+v for %+v", symbolsList, gcpp.currencies)
 	for range gcpp.ticker.C {
-		var items []*state.Price
+		var items []*state.PriceValue
 		for currency, currencyKey := range gcpp.currencies {
 			response, err := gcpp.client.GetConversionRates(ctx, currency, 1, symbolsList...)
 			if err != nil {
@@ -40,7 +40,7 @@ func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- [
 			}
 			now := time.Now()
 			for key, value := range response {
-				items = append(items, &state.Price{
+				items = append(items, &state.PriceValue{
 					TimeStamp: now,
 					Source:    "geocurrency",
 					Symbol:    gcpp.symbols[key],

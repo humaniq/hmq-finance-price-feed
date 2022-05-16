@@ -2,10 +2,32 @@ package state
 
 import (
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
+	"sort"
 	"time"
 )
 
 type Price struct {
+	Current *PriceValue
+	History []PriceHistory
+}
+
+func NewPrice() *Price {
+	return &Price{}
+}
+func (p *Price) Set(value *PriceValue) {
+	p.Current = value
+	p.History = append(p.History, PriceHistory{
+		TimeStamp: value.TimeStamp,
+		Value:     value.Price,
+	})
+}
+
+type PriceHistory struct {
+	TimeStamp time.Time
+	Value     float64
+}
+
+type PriceValue struct {
 	TimeStamp time.Time
 	Source    string
 	Symbol    string
@@ -13,8 +35,8 @@ type Price struct {
 	Price     float64
 }
 
-func NewPrice(source string, symbol string, currency string, price float64, timeStamp time.Time) *Price {
-	return &Price{
+func NewPriceValue(source string, symbol string, currency string, price float64, timeStamp time.Time) *PriceValue {
+	return &PriceValue{
 		TimeStamp: timeStamp,
 		Source:    source,
 		Symbol:    symbol,
@@ -25,16 +47,16 @@ func NewPrice(source string, symbol string, currency string, price float64, time
 
 type Prices struct {
 	Currency      string            `json:"currency"`
-	Val           map[string]*Price `json:"values"`
-	changed       []string
+	Values        map[string]*Price `json:"values"`
+	changed       []*PriceValue
 	commitFilters []CommitFilterFunc
 }
 
 func NewPrices(currency string) *Prices {
 	return &Prices{
 		Currency: currency,
-		Val:      make(map[string]*Price),
-		changed:  []string{},
+		Values:   make(map[string]*Price),
+		changed:  []*PriceValue{},
 	}
 }
 func (ps *Prices) Key() string {
@@ -44,59 +66,98 @@ func (ps *Prices) WithCommitFilters(fn ...CommitFilterFunc) *Prices {
 	ps.commitFilters = append(ps.commitFilters, fn...)
 	return ps
 }
-func (ps *Prices) Commit(price *Price) bool {
-	current := ps.Val[price.Symbol]
-	for _, filter := range ps.commitFilters {
-		if !filter(current, price) {
-			return false
+func (ps *Prices) Commit(price *PriceValue) bool {
+	current, found := ps.Values[price.Symbol]
+	if !found {
+		current = NewPrice()
+	} else {
+		for _, filter := range ps.commitFilters {
+			if !filter(current.Current, price) {
+				return false
+			}
 		}
 	}
-	ps.Val[price.Symbol] = price
-	ps.changed = append(ps.changed, price.Symbol)
+	current.Set(price)
+	ps.Values[price.Symbol] = current
+	ps.changed = append(ps.changed, price)
 	return true
 }
 func (ps *Prices) Stage() {
-	ps.changed = []string{}
+	ps.changed = []*PriceValue{}
 }
-func (ps *Prices) Changes() []*Price {
-	result := make([]*Price, 0, len(ps.changed))
-	for _, change := range ps.changed {
-		result = append(result, ps.Val[change])
-	}
-	return result
+func (ps *Prices) Changes() []*PriceValue {
+	return ps.changed
 }
-func (ps *Prices) Values() map[string]*Price {
-	return ps.Val
-}
-func (ps *Prices) Prices() []*Price {
-	result := make([]*Price, 0, len(ps.Val))
-	for _, val := range ps.Val {
-		result = append(result, val)
-	}
-	return result
-}
-func (ps *Prices) Estimate(symbol string, currency string) *Price {
-	symbolPrice, found := ps.Val[symbol]
+func (ps *Prices) Estimate(symbol string, currency string, withHistory bool) *Price {
+	symbolPrice, found := ps.Values[symbol]
 	if !found {
 		return nil
 	}
-	currencyPrice, found := ps.Val[currency]
+	currencyPrice, found := ps.Values[currency]
 	if !found {
 		return nil
+	}
+	if withHistory {
+		return &Price{
+			Current: &PriceValue{
+				TimeStamp: time.Now(),
+				Source:    "estimate",
+				Symbol:    symbol,
+				Currency:  currency,
+				Price:     symbolPrice.Current.Price / currencyPrice.Current.Price,
+			},
+			History: estimateHistory(symbolPrice.History, currencyPrice.History),
+		}
 	}
 	return &Price{
-		TimeStamp: time.Now(),
-		Source:    "estimate",
-		Symbol:    symbol,
-		Currency:  currency,
-		Price:     symbolPrice.Price / currencyPrice.Price,
+		Current: &PriceValue{
+			TimeStamp: time.Now(),
+			Source:    "estimate",
+			Symbol:    symbol,
+			Currency:  currency,
+			Price:     symbolPrice.Current.Price / currencyPrice.Current.Price,
+		},
 	}
 }
+func estimateHistory(symbolPrices []PriceHistory, currencyPrices []PriceHistory) []PriceHistory {
+	type historyValue struct {
+		isSymbol bool
+		value    PriceHistory
+	}
+	history := make([]historyValue, 0, len(symbolPrices)+len(currencyPrices))
+	for _, sp := range symbolPrices {
+		history = append(history, historyValue{isSymbol: true, value: sp})
+	}
+	for _, cp := range currencyPrices {
+		history = append(history, historyValue{value: cp})
+	}
+	sort.Slice(history, func(i, j int) bool {
+		return history[i].value.TimeStamp.Before(history[j].value.TimeStamp)
+	})
+	result := make([]PriceHistory, 0, len(history))
+	currentSymbolPrice := float64(0)
+	currentCurrencyPrice := float64(0)
+	for _, hValue := range history {
+		if hValue.isSymbol && hValue.value.Value != 0 {
+			currentSymbolPrice = hValue.value.Value
+		}
+		if !hValue.isSymbol && hValue.value.Value != 0 {
+			currentCurrencyPrice = hValue.value.Value
+		}
+		if currentCurrencyPrice != 0 && currentSymbolPrice != 0 {
+			result = append(result, PriceHistory{
+				TimeStamp: hValue.value.TimeStamp,
+				Value:     currentSymbolPrice / currentCurrencyPrice,
+			})
+		}
+	}
+	return result
+}
 
-type CommitFilterFunc func(p0 *Price, p1 *Price) bool
+type CommitFilterFunc func(p0 *PriceValue, p1 *PriceValue) bool
 
 func CommitCurrenciesFilterFunc(currencies map[string]bool) CommitFilterFunc {
-	return func(p0 *Price, p1 *Price) bool {
+	return func(p0 *PriceValue, p1 *PriceValue) bool {
 		if currencies[p1.Currency] {
 			return true
 		}
@@ -104,7 +165,7 @@ func CommitCurrenciesFilterFunc(currencies map[string]bool) CommitFilterFunc {
 	}
 }
 func CommitSymbolsFilterFunc(symbols map[string]bool) CommitFilterFunc {
-	return func(p0 *Price, p1 *Price) bool {
+	return func(p0 *PriceValue, p1 *PriceValue) bool {
 		if symbols[p1.Symbol] {
 			return true
 		}
@@ -112,7 +173,7 @@ func CommitSymbolsFilterFunc(symbols map[string]bool) CommitFilterFunc {
 	}
 }
 func CommitPricePercentDiffFilterFinc(diffs config.Diffs) CommitFilterFunc {
-	return func(p0 *Price, p1 *Price) bool {
+	return func(p0 *PriceValue, p1 *PriceValue) bool {
 		if p0 == nil {
 			return true
 		}
@@ -133,7 +194,7 @@ func CommitPricePercentDiffFilterFinc(diffs config.Diffs) CommitFilterFunc {
 }
 
 func CommitTimestampFilterFunc() CommitFilterFunc {
-	return func(p0 *Price, p1 *Price) bool {
+	return func(p0 *PriceValue, p1 *PriceValue) bool {
 		if p0 == nil {
 			return true
 		}

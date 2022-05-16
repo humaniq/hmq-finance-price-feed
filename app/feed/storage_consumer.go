@@ -11,7 +11,7 @@ import (
 
 type StorageConsumer struct {
 	back        storage.PricesSaver
-	in          chan []*state.Price
+	in          chan []*state.PriceValue
 	next        []Consumer
 	done        chan interface{}
 	leasesMutex sync.Mutex
@@ -23,14 +23,14 @@ type StorageConsumer struct {
 func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.Prices) *StorageConsumer {
 	consumer := &StorageConsumer{
 		back:  backend,
-		in:    make(chan []*state.Price),
+		in:    make(chan []*state.PriceValue),
 		done:  make(chan interface{}),
 		state: pricesState,
 		name:  name,
 	}
 	return consumer
 }
-func (sc *StorageConsumer) In() chan<- []*state.Price {
+func (sc *StorageConsumer) In() chan<- []*state.PriceValue {
 	return sc.in
 }
 func (sc *StorageConsumer) WithNext(next ...Consumer) *StorageConsumer {
@@ -43,7 +43,7 @@ func (sc *StorageConsumer) WithNext(next ...Consumer) *StorageConsumer {
 func (sc *StorageConsumer) WaitForDone() {
 	<-sc.done
 }
-func (sc *StorageConsumer) Lease() chan<- []*state.Price {
+func (sc *StorageConsumer) Lease() chan<- []*state.PriceValue {
 	sc.leasesMutex.Lock()
 	defer sc.leasesMutex.Unlock()
 	sc.leases++
@@ -75,7 +75,7 @@ func (sc *StorageConsumer) Run() {
 			}
 			currencyPrices.Commit(price)
 		}
-		var nextItems []*state.Price
+		var nextItems []*state.PriceValue
 		for currency, currencyPrices := range sc.state {
 			if len(currencyPrices.Changes()) > 0 {
 				if err := sc.back.SavePrices(ctx, currency, currencyPrices); err != nil {
