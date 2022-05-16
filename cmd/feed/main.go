@@ -70,12 +70,6 @@ func main() {
 
 	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
 
-	coingeckoClient, err := prices.CoinGeckoFromFile(os.Getenv("COINGECKO_CONFIG_FILE"))
-	if err != nil {
-		logger.Fatal(ctx, err.Error())
-		return
-	}
-
 	if contractUrl := os.Getenv("CONTRACT_PRICES_URL"); contractUrl != "" {
 		chainIdString := os.Getenv("CONTRACT_CHAIN_ID")
 		chainId, err := strconv.ParseInt(chainIdString, 10, 64)
@@ -114,7 +108,7 @@ func main() {
 			go func(name string) {
 				defer wg.Done()
 				defer dsConsumer.Release()
-				if err := feed.NewCoinGeckoProvider(time.Minute*5, coingeckoClient, provider.Symbols, provider.Currencies).
+				if err := feed.NewCoinGeckoProvider(time.Minute*5, prices.NewCoinGecko(), provider.Symbols, provider.Currencies).
 					Provide(ctx, dsConsumer.Lease()); err != nil {
 					logger.Fatal(ctx, "%s provider fail: %s", name, err.Error())
 				}

@@ -6,37 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 )
 
-type CoinGecko struct {
-	symbols    map[string]string `yaml:"symbols"`
-	currencies map[string]bool   `yaml:"currencies"`
-}
+type CoinGecko struct{}
 
-func CoinGeckoFromFile(configFilePath string) (*CoinGecko, error) {
-	symbolsFile, err := os.Open(configFilePath)
-	if err != nil {
-		return nil, err
-	}
-	defer symbolsFile.Close()
-
-	var config struct {
-		Symbols    map[string]string
-		Currencies []string
-	}
-	if err := json.NewDecoder(symbolsFile).Decode(&config); err != nil {
-		return nil, err
-	}
-	currencies := make(map[string]bool)
-	for _, key := range config.Currencies {
-		currencies[key] = true
-	}
-	return &CoinGecko{
-		symbols:    config.Symbols,
-		currencies: currencies,
-	}, nil
+func NewCoinGecko() *CoinGecko {
+	return &CoinGecko{}
 }
 func (cg *CoinGecko) GetterFunc(symbols map[string]string, currencies map[string]string) func(ctx context.Context) (map[string]map[string]float64, error) {
 	requestSymbols := make([]string, 0, len(symbols))
