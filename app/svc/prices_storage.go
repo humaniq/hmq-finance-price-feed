@@ -2,7 +2,6 @@ package svc
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 )
 
@@ -23,9 +22,6 @@ func (ps *Prices) WithStdCurrency(std string) *Prices {
 func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []string) (map[string]SymbolPrices, error) {
 	result := make(map[string]SymbolPrices)
 	for _, currency := range currencies {
-		if !config.CurrenciesKnown[currency] {
-			continue
-		}
 		prices, err := ps.backend.LoadPrices(ctx, currency)
 		if err != nil {
 			return nil, err

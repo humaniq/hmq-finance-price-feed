@@ -10,7 +10,7 @@ type Feed struct {
 	Assets     []string          `yaml:"assets"`
 	Currencies map[string]string `yaml:"currencies"`
 	Providers  []ProviderConfig  `yaml:"providers"`
-	Diffs      DiffChecker       `yaml:"diffs"`
+	Diffs      Diffs             `yaml:"diffs"`
 }
 
 type ProviderConfig struct {
@@ -33,4 +33,11 @@ func FeedConfigFromFile(filePath string) (*Feed, error) {
 	return &config, nil
 }
 
-type DiffChecker map[string]int
+type Diffs map[string]int
+
+func (dc Diffs) Diff(symbol string) int {
+	if val, found := dc[symbol]; found {
+		return val
+	}
+	return 1
+}

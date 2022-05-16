@@ -1,6 +1,9 @@
 package state
 
-import "time"
+import (
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
+	"time"
+)
 
 type Price struct {
 	TimeStamp time.Time
@@ -108,13 +111,13 @@ func CommitSymbolsFilterFunc(symbols map[string]bool) CommitFilterFunc {
 		return false
 	}
 }
-func CommitPricePercentDiffFilterFinc(diffs map[string]int) CommitFilterFunc {
+func CommitPricePercentDiffFilterFinc(diffs config.Diffs) CommitFilterFunc {
 	return func(p0 *Price, p1 *Price) bool {
 		if p0 == nil {
 			return true
 		}
-		diffPercent, found := diffs[p1.Symbol]
-		if !found || diffPercent >= 100 {
+		diffPercent := diffs.Diff(p1.Symbol)
+		if diffPercent >= 100 || diffPercent <= 0 {
 			return true
 		}
 		deltaDiff := p0.Price * float64(diffPercent) / 100

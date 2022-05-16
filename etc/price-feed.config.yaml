@@ -321,10 +321,10 @@ providers:
   - name: geocurrency
     type: geocurrency
     symbols:
-      tzs: tzs
-      ugx: ugx
-      frw: frw
-      krw: krw
+      TZS: tzs
+      UGX: ugx
+      FRW: frw
+      KRW: krw
     currencies:
       usd: usd
       eur: eur

@@ -9,6 +9,7 @@ Restart=always
 RestartSec=1
 User=root
 ExecStart=/home/hmq/app/bin/prices-feed.bin
+Environment="CONFIG_FILE_PATH=/home/hmq/app/etc/prices-feed.config.yaml"
 Environment="DATASTORE_PROJECT_ID=humaniq-168420"
 Environment="CONTRACT_PRICES_ADDRESS=0x470fd88783fc521f13c9465b0f241bc6422f7a4b"
 Environment="CONTRACT_PRICES_CHAIN_ID=1337"

@@ -29,6 +29,7 @@ func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- [
 	for symbol, _ := range gcpp.symbols {
 		symbolsList = append(symbolsList, symbol)
 	}
+	logger.Info(ctx, "providing geocurrency: %+v for %+v", symbolsList, gcpp.currencies)
 	for range gcpp.ticker.C {
 		var items []*state.Price
 		for currency, currencyKey := range gcpp.currencies {
