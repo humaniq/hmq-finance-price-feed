@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
@@ -29,6 +29,16 @@ func main() {
 	}
 	ctx := context.Background()
 
+	configPath := os.Getenv("CONFIG_FILE_PATH")
+	if configPath == "" {
+		configPath = "/etc/hmq/price-feed.yaml"
+	}
+	cfg, err := config.FeedConfigFromFile(configPath)
+	if err != nil {
+		logger.Fatal(ctx, "error getting config: %s", err)
+		return
+	}
+
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
 		dsKind = "hmq_current_prices"
@@ -40,13 +50,8 @@ func main() {
 	}
 	backend := storage.NewPricesDS(gdsClient)
 
-	nativeCurrencyList := strings.Split(os.Getenv("NATIVE_CURRENCY_LIST"), ",")
-	if len(nativeCurrencyList) == 0 || (len(nativeCurrencyList) == 1 && nativeCurrencyList[0] == "") {
-		nativeCurrencyList = config.DefaultNativeCurrencyList
-	}
-
 	pricesState := make(map[string]*state.Prices)
-	for _, currency := range nativeCurrencyList {
+	for _, currency := range cfg.Assets {
 		currencyState, err := backend.LoadPrices(ctx, currency)
 		if err != nil {
 			if !errors.Is(err, storage.ErrNotFound) {
@@ -58,8 +63,7 @@ func main() {
 		currencyState = currencyState.WithCommitFilters(
 			state.CommitTimestampFilterFunc(),
 			state.CommitCurrenciesFilterFunc(map[string]bool{currency: true}),
-			state.CommitSymbolsFilterFunc(config.KnownSymbolsChecker()),
-			state.CommitPricePercentDiffFilterFinc(config.DefaultSymbolDiffs()),
+			state.CommitPricePercentDiffFilterFinc(cfg.Diffs),
 		)
 		pricesState[currency] = currencyState
 	}
@@ -100,20 +104,34 @@ func main() {
 	go dsConsumer.Run()
 	defer dsConsumer.WaitForDone()
 
-	smb := strings.Split(os.Getenv("COINGECKO_SYMBOL_LIST"), ",")
-	for index, value := range smb {
-		smb[index] = strings.ToLower(value)
-	}
-	cur := strings.Split(os.Getenv("COINGECKO_CURRENCY_LIST"), ",")
-	for index, value := range cur {
-		cur[index] = strings.ToLower(value)
-	}
+	var wg sync.WaitGroup
+	wg.Add(len(cfg.Providers))
+	defer wg.Wait()
 
-	coingeckoProvider := feed.NewCoinGeckoProvider(time.Minute*5, coingeckoClient, smb, cur)
-	if err := coingeckoProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
-		logger.Fatal(ctx, "provider fail: %s", err)
-		dsConsumer.Release()
-		return
+	for _, provider := range cfg.Providers {
+		switch provider.Type {
+		case "coingecko":
+			go func(name string) {
+				defer wg.Done()
+				defer dsConsumer.Release()
+				if err := feed.NewCoinGeckoProvider(time.Minute*5, coingeckoClient, provider.Symbols, provider.Currencies).
+					Provide(ctx, dsConsumer.Lease()); err != nil {
+					logger.Fatal(ctx, "%s provider fail: %s", name, err.Error())
+				}
+			}(provider.Name)
+		case "geocurrency":
+			go func(name string) {
+				defer wg.Done()
+				defer dsConsumer.Release()
+				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(time.Minute*5, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), provider.Symbols, provider.Currencies)
+				if err := geoCurrencyProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
+					logger.Fatal(ctx, "%s provider fail: %s", name, err.Error())
+				}
+			}(provider.Name)
+		default:
+			logger.Fatal(ctx, "UNKNOWN PROVIDER: %s", provider.Type)
+			return
+		}
 	}
 
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"net/http"
 	"os"
 	"strings"
@@ -39,31 +38,17 @@ func CoinGeckoFromFile(configFilePath string) (*CoinGecko, error) {
 		currencies: currencies,
 	}, nil
 }
-func (cg *CoinGecko) GetterFunc(symbols []string, currencies []string) func(ctx context.Context) (map[string]map[string]float64, error) {
-	ctx := context.Background()
-	requestSymbols := make(map[string]string)
-	requestIds := make([]string, 0, len(symbols))
-	for _, symbol := range symbols {
-		id, found := cg.symbols[strings.ToLower(symbol)]
-		if !found {
-			logger.Error(ctx, "symbol not found: %s", symbol)
-			continue
-		}
-		requestSymbols[id] = symbol
-		requestIds = append(requestIds, id)
+func (cg *CoinGecko) GetterFunc(symbols map[string]string, currencies map[string]string) func(ctx context.Context) (map[string]map[string]float64, error) {
+	requestSymbols := make([]string, 0, len(symbols))
+	for symbol, _ := range symbols {
+		requestSymbols = append(requestSymbols, symbol)
 	}
-	currenciesMapper := make(map[string]string)
 	requestCurrencies := make([]string, 0, len(currencies))
-	for _, currency := range currencies {
-		if cg.currencies[strings.ToLower(currency)] {
-			requestCurrencies = append(requestCurrencies, strings.ToLower(currency))
-			currenciesMapper[strings.ToLower(currency)] = currency
-		} else {
-			logger.Error(ctx, "currency not found: %s", currency)
-		}
+	for currency, _ := range currencies {
+		requestCurrencies = append(requestCurrencies, strings.ToLower(currency))
 	}
 
-	return getFunc(strings.Join(requestIds, ","), strings.Join(requestCurrencies, ","), requestSymbols, currenciesMapper)
+	return getFunc(strings.Join(requestSymbols, ","), strings.Join(requestCurrencies, ","), symbols, currencies)
 }
 
 func getFunc(ids string, vsCurrencies string, symbolsMapper map[string]string, currenciesMapper map[string]string) func(ctx context.Context) (map[string]map[string]float64, error) {

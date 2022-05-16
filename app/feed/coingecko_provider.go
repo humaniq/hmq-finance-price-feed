@@ -14,7 +14,7 @@ type CoinGeckoPriceProvider struct {
 	ticker *time.Ticker
 }
 
-func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols []string, currencies []string) *CoinGeckoPriceProvider {
+func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols map[string]string, currencies map[string]string) *CoinGeckoPriceProvider {
 	return &CoinGeckoPriceProvider{get: client.GetterFunc(symbols, currencies), ticker: time.NewTicker(tick)}
 }
 
