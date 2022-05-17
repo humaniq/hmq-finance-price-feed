@@ -63,7 +63,7 @@ func NewPricesContractSetter(rawUrl string, chainId int64, contractAddressHex st
 	}, nil
 }
 
-func (pc *PricesContractSetter) SavePrices(ctx context.Context, key string, value *state.Prices) error {
+func (pc *PricesContractSetter) SavePrices(ctx context.Context, key string, value *state.AssetPrices) error {
 	for _, price := range value.Prices() {
 		if err := pc.SetSymbolPrice(ctx, price.Symbol, price.Currency, price.Price, price.TimeStamp); err != nil {
 			return err

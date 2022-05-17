@@ -7,26 +7,44 @@ import (
 )
 
 type Price struct {
-	Current *PriceValue
-	History []PriceHistory
+	Current       *PriceValue
+	History       []PriceHistory
+	historyOffset time.Duration
 }
 
 func NewPrice() *Price {
 	return &Price{}
 }
+func (p *Price) WithHistoryOffset(offset time.Duration) *Price {
+	p.historyOffset = offset
+	return p
+}
 func (p *Price) Set(value *PriceValue) {
 	p.Current = value
-	p.History = append(p.History, PriceHistory{
+	history := make([]PriceHistory, 0, len(p.History)+1)
+	for _, hr := range p.History {
+		if p.historyOffset != 0 && hr.TimeStamp.Before(value.TimeStamp.Add(-1*p.historyOffset)) {
+			continue
+		}
+		history = append(history, PriceHistory{
+			TimeStamp: hr.TimeStamp,
+			Value:     hr.Value,
+		})
+	}
+	history = append(history, PriceHistory{
 		TimeStamp: value.TimeStamp,
 		Value:     value.Price,
 	})
+	sort.Slice(history, func(i, j int) bool {
+		return history[i].TimeStamp.Before(history[j].TimeStamp)
+	})
+	p.History = history
 }
 
 type PriceHistory struct {
 	TimeStamp time.Time
 	Value     float64
 }
-
 type PriceValue struct {
 	TimeStamp time.Time
 	Source    string
@@ -45,28 +63,28 @@ func NewPriceValue(source string, symbol string, currency string, price float64,
 	}
 }
 
-type Prices struct {
+type AssetPrices struct {
 	Currency      string            `json:"currency"`
 	Values        map[string]*Price `json:"values"`
 	changed       []*PriceValue
 	commitFilters []CommitFilterFunc
 }
 
-func NewPrices(currency string) *Prices {
-	return &Prices{
+func NewPrices(currency string) *AssetPrices {
+	return &AssetPrices{
 		Currency: currency,
 		Values:   make(map[string]*Price),
 		changed:  []*PriceValue{},
 	}
 }
-func (ps *Prices) Key() string {
+func (ps *AssetPrices) Key() string {
 	return ps.Currency
 }
-func (ps *Prices) WithCommitFilters(fn ...CommitFilterFunc) *Prices {
+func (ps *AssetPrices) WithCommitFilters(fn ...CommitFilterFunc) *AssetPrices {
 	ps.commitFilters = append(ps.commitFilters, fn...)
 	return ps
 }
-func (ps *Prices) Commit(price *PriceValue) bool {
+func (ps *AssetPrices) Commit(price *PriceValue) bool {
 	current, found := ps.Values[price.Symbol]
 	if !found {
 		current = NewPrice()
@@ -82,13 +100,26 @@ func (ps *Prices) Commit(price *PriceValue) bool {
 	ps.changed = append(ps.changed, price)
 	return true
 }
-func (ps *Prices) Stage() {
+func (ps *AssetPrices) Stage() {
 	ps.changed = []*PriceValue{}
 }
-func (ps *Prices) Changes() []*PriceValue {
+func (ps *AssetPrices) Changes() []*PriceValue {
 	return ps.changed
 }
-func (ps *Prices) Estimate(symbol string, currency string, withHistory bool) *Price {
+func (ps *AssetPrices) Get(symbol string, withHistory bool) *Price {
+	symbolPrice, found := ps.Values[symbol]
+	if !found {
+		return nil
+	}
+	p := Price{
+		Current: symbolPrice.Current,
+	}
+	if withHistory {
+		p.History = symbolPrice.History
+	}
+	return &p
+}
+func (ps *AssetPrices) Estimate(symbol string, currency string, withHistory bool) *Price {
 	symbolPrice, found := ps.Values[symbol]
 	if !found {
 		return nil
@@ -97,19 +128,7 @@ func (ps *Prices) Estimate(symbol string, currency string, withHistory bool) *Pr
 	if !found {
 		return nil
 	}
-	if withHistory {
-		return &Price{
-			Current: &PriceValue{
-				TimeStamp: time.Now(),
-				Source:    "estimate",
-				Symbol:    symbol,
-				Currency:  currency,
-				Price:     symbolPrice.Current.Price / currencyPrice.Current.Price,
-			},
-			History: estimateHistory(symbolPrice.History, currencyPrice.History),
-		}
-	}
-	return &Price{
+	p := Price{
 		Current: &PriceValue{
 			TimeStamp: time.Now(),
 			Source:    "estimate",
@@ -118,6 +137,10 @@ func (ps *Prices) Estimate(symbol string, currency string, withHistory bool) *Pr
 			Price:     symbolPrice.Current.Price / currencyPrice.Current.Price,
 		},
 	}
+	if withHistory {
+		p.History = estimateHistory(symbolPrice.History, currencyPrice.History)
+	}
+	return &p
 }
 func estimateHistory(symbolPrices []PriceHistory, currencyPrices []PriceHistory) []PriceHistory {
 	type historyValue struct {

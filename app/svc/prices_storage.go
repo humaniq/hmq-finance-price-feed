@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 )
 
@@ -9,39 +10,63 @@ type Prices struct {
 	backend  storage.PricesLoader
 	required []string
 	std      string
+	mapping  map[string]string
 }
 
 func NewPrices(backend storage.PricesLoader) *Prices {
 	return &Prices{backend: backend}
 }
-func (ps *Prices) WithStdCurrency(std string) *Prices {
-	ps.std = std
+func (ps *Prices) WithMapping(mapping map[string]string) *Prices {
+	ps.mapping = mapping
 	return ps
 }
 
-func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []string) (map[string]SymbolPrices, error) {
+func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []string, withHistory bool) (map[string]SymbolPrices, error) {
 	result := make(map[string]SymbolPrices)
 	for _, currency := range currencies {
-		prices, err := ps.backend.LoadPrices(ctx, currency)
+		actualCurrency := currency
+		estimate := false
+		if ps.mapping != nil {
+			cur, found := ps.mapping[currency]
+			if !found {
+				continue
+			}
+			if cur != currency {
+				estimate = true
+			}
+			actualCurrency = cur
+		}
+		prices, err := ps.backend.LoadPrices(ctx, actualCurrency)
 		if err != nil {
 			return nil, err
 		}
 		for _, symbol := range symbols {
-			value, found := prices.Values()[symbol]
-			if !found {
+			var value *state.Price
+			if estimate {
+				value = prices.Estimate(symbol, currency, withHistory)
+			} else {
+				value = prices.Get(symbol, withHistory)
+			}
+			if value == nil {
 				continue
 			}
 			record, found := result[symbol]
 			if !found {
 				record = make(map[string]SymbolPrice)
 			}
-			record[currency] = SymbolPrice{
-				Source:    value.Source,
-				Value:     value.Price,
-				TimeStamp: value.TimeStamp,
+			val := SymbolPrice{
+				Source:    value.Current.Source,
+				Value:     value.Current.Price,
+				TimeStamp: value.Current.TimeStamp,
 			}
+			if withHistory {
+				for _, rec := range value.History {
+					val.History = append(val.History, SymbolPricesHistory{TimeStamp: rec.TimeStamp, Value: rec.Value})
+				}
+			}
+			record[currency] = val
+			result[symbol] = record
 		}
 	}
-
 	return result, nil
 }

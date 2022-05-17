@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
@@ -48,7 +49,7 @@ func MustGetStringListFromCtx(ctx context.Context, key string) []string {
 	return ctx.Value(key).([]string)
 }
 
-func GetPricesFunc(backend storage.PricesLoader) http.HandlerFunc {
+func GetPricesFunc(backend svc.Prices) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
@@ -57,11 +58,15 @@ func GetPricesFunc(backend storage.PricesLoader) http.HandlerFunc {
 			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("invalid symbol/currency mapping"), http.StatusBadRequest)
 			return
 		}
+		withHistory := false
+		if histQuery := r.URL.Query().Get("history"); histQuery != "" {
+			withHistory = true
+		}
 
 		resultMap := make(map[string][]PriceRecord)
 
 		for _, currency := range currencies {
-			prices, err := backend.LoadPrices(ctx, currency)
+			prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 			if err != nil {
 				if errors.Is(err, storage.ErrNotFound) {
 					logger.Warn(ctx, "[API] prices not found for %s", currency)
@@ -70,17 +75,27 @@ func GetPricesFunc(backend storage.PricesLoader) http.HandlerFunc {
 				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
 				return
 			}
-			values := prices.Values()
 			for _, symbol := range symbols {
 				list := resultMap[symbol]
-				value, found := values[symbol]
+				value, found := prices[symbol]
 				if found {
-					list = append(list, PriceRecord{
-						Source:    value.Source,
-						Currency:  value.Currency,
-						TimeStamp: value.TimeStamp,
-						Price:     value.Price,
-					})
+					for key, val := range value {
+						priceRecord := PriceRecord{
+							Source:    val.Source,
+							Currency:  key,
+							TimeStamp: val.TimeStamp,
+							Price:     val.Value,
+						}
+						if withHistory {
+							for _, hv := range val.History {
+								priceRecord.History = append(priceRecord.History, PriceHistoryRecord{
+									TimeStamp: hv.TimeStamp,
+									Price:     hv.Value,
+								})
+							}
+						}
+						list = append(list, priceRecord)
+					}
 				}
 				resultMap[symbol] = list
 			}

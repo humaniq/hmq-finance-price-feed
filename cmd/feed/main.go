@@ -50,7 +50,7 @@ func main() {
 	}
 	backend := storage.NewPricesDS(gdsClient)
 
-	pricesState := make(map[string]*state.Prices)
+	pricesState := make(map[string]*state.AssetPrices)
 	for _, currency := range cfg.Assets {
 		currencyState, err := backend.LoadPrices(ctx, currency)
 		if err != nil {

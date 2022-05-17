@@ -16,7 +16,7 @@ type dsPricesRecord struct {
 	Prices    []*state.PriceValue `datastore:"prices"`
 }
 
-func (r *dsPricesRecord) ToState() *state.Prices {
+func (r *dsPricesRecord) ToState() *state.AssetPrices {
 	prices := state.NewPrices(r.Key)
 	for _, price := range r.Prices {
 		prices.Commit(price)
@@ -24,7 +24,7 @@ func (r *dsPricesRecord) ToState() *state.Prices {
 	prices.Stage()
 	return prices
 }
-func dsPricesRecordFromState(value *state.Prices) *dsPricesRecord {
+func dsPricesRecordFromState(value *state.AssetPrices) *dsPricesRecord {
 	return &dsPricesRecord{
 		Key:       value.Key(),
 		TimeStamp: time.Now(),
@@ -40,13 +40,13 @@ func NewPricesDS(client *gds.Client) *PricesDS {
 	return &PricesDS{client: client}
 }
 
-func (ds *PricesDS) SavePrices(ctx context.Context, key string, value *state.Prices) error {
+func (ds *PricesDS) SavePrices(ctx context.Context, key string, value *state.AssetPrices) error {
 	if err := dsWritePrices(ctx, ds.client, key, dsPricesRecordFromState(value)); err != nil {
 		return fmt.Errorf("%w: %s", ErrWriting, err)
 	}
 	return nil
 }
-func (ds *PricesDS) LoadPrices(ctx context.Context, key string) (*state.Prices, error) {
+func (ds *PricesDS) LoadPrices(ctx context.Context, key string) (*state.AssetPrices, error) {
 	pricesDS, err := dsReadPrices(ctx, ds.client, key)
 	if err != nil {
 		return nil, err

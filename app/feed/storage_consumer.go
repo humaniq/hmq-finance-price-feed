@@ -16,11 +16,11 @@ type StorageConsumer struct {
 	done        chan interface{}
 	leasesMutex sync.Mutex
 	leases      int
-	state       map[string]*state.Prices
+	state       map[string]*state.AssetPrices
 	name        string
 }
 
-func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.Prices) *StorageConsumer {
+func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.AssetPrices) *StorageConsumer {
 	consumer := &StorageConsumer{
 		back:  backend,
 		in:    make(chan []*state.PriceValue),

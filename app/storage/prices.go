@@ -7,10 +7,10 @@ import (
 )
 
 type PricesSaver interface {
-	SavePrices(ctx context.Context, key string, value *state.Prices) error
+	SavePrices(ctx context.Context, key string, value *state.AssetPrices) error
 }
 type PricesLoader interface {
-	LoadPrices(ctx context.Context, key string) (*state.Prices, error)
+	LoadPrices(ctx context.Context, key string) (*state.AssetPrices, error)
 }
 type Prices interface {
 	PricesLoader

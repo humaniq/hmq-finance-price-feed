@@ -24,7 +24,7 @@ func (cp *PricesCache) Wrap(next Prices) *PricesCache {
 	return cp
 }
 
-func (cp *PricesCache) SavePrices(ctx context.Context, key string, value *state.Prices) error {
+func (cp *PricesCache) SavePrices(ctx context.Context, key string, value *state.AssetPrices) error {
 	if cp.next != nil {
 		if err := cp.next.SavePrices(ctx, key, value); err != nil {
 			return fmt.Errorf("%w: %s", ErrWriting, err)
@@ -36,7 +36,7 @@ func (cp *PricesCache) SavePrices(ctx context.Context, key string, value *state.
 	return nil
 }
 
-func (cp *PricesCache) LoadPrices(ctx context.Context, key string) (*state.Prices, error) {
+func (cp *PricesCache) LoadPrices(ctx context.Context, key string) (*state.AssetPrices, error) {
 	value, err := cacheGetPrices(ctx, cp.cache, key)
 	if err != nil {
 		if !errors.Is(err, cache.ErrNotFound) {
@@ -62,13 +62,13 @@ func cacheUnsetPrices(ctx context.Context, cache cache.Wrapper, key string) erro
 	}
 	return nil
 }
-func cacheSetPrices(ctx context.Context, cache cache.Wrapper, key string, prices *state.Prices, expiry time.Duration) error {
+func cacheSetPrices(ctx context.Context, cache cache.Wrapper, key string, prices *state.AssetPrices, expiry time.Duration) error {
 	if err := cache.Set(ctx, toPricesCacheKey(key), prices, expiry); err != nil {
 		return err
 	}
 	return nil
 }
-func cacheGetPrices(ctx context.Context, cache cache.Wrapper, key string) (*state.Prices, error) {
+func cacheGetPrices(ctx context.Context, cache cache.Wrapper, key string) (*state.AssetPrices, error) {
 	value := state.NewPrices(key)
 	if err := cache.Get(ctx, toPricesCacheKey(key), value); err != nil {
 		return nil, err
