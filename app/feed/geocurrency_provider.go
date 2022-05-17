@@ -2,10 +2,11 @@ package feed
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"time"
+
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type GeoCurrencyPriceProvider struct {
@@ -24,14 +25,14 @@ func NewGeoCurrencyPriceProvider(tick time.Duration, client *prices.IPCurrencyAP
 	}
 }
 
-func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- []*state.PriceValue) error {
+func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- []price.Value) error {
 	symbolsList := make([]string, 0, len(gcpp.symbols))
 	for symbol, _ := range gcpp.symbols {
 		symbolsList = append(symbolsList, symbol)
 	}
 	logger.Info(ctx, "providing geocurrency: %+v for %+v", symbolsList, gcpp.currencies)
 	for range gcpp.ticker.C {
-		var items []*state.PriceValue
+		var items []price.Value
 		for currency, currencyKey := range gcpp.currencies {
 			response, err := gcpp.client.GetConversionRates(ctx, currency, 1, symbolsList...)
 			if err != nil {
@@ -40,9 +41,9 @@ func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- [
 			}
 			now := time.Now()
 			for key, value := range response {
-				items = append(items, &state.PriceValue{
+				items = append(items, price.Value{
 					TimeStamp: now,
-					Source:    "geocurrency",
+					Source:    "geo",
 					Symbol:    gcpp.symbols[key],
 					Currency:  currencyKey,
 					Price:     value,

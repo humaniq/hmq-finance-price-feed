@@ -2,35 +2,40 @@ package feed
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"sync"
 
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type StorageConsumer struct {
 	back        storage.PricesSaver
-	in          chan []*state.PriceValue
+	in          chan []price.Value
 	next        []Consumer
 	done        chan interface{}
 	leasesMutex sync.Mutex
 	leases      int
-	state       map[string]*state.AssetPrices
+	state       map[string]*state.AssetCommitter
 	name        string
 }
 
-func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.AssetPrices) *StorageConsumer {
+func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*price.Asset) *StorageConsumer {
+	stateValue := make(map[string]*state.AssetCommitter)
+	for key, val := range pricesState {
+		stateValue[key] = state.NewAssetCommitter(val)
+	}
 	consumer := &StorageConsumer{
 		back:  backend,
-		in:    make(chan []*state.PriceValue),
+		in:    make(chan []price.Value),
 		done:  make(chan interface{}),
-		state: pricesState,
+		state: stateValue,
 		name:  name,
 	}
 	return consumer
 }
-func (sc *StorageConsumer) In() chan<- []*state.PriceValue {
+func (sc *StorageConsumer) In() chan<- []price.Value {
 	return sc.in
 }
 func (sc *StorageConsumer) WithNext(next ...Consumer) *StorageConsumer {
@@ -43,7 +48,7 @@ func (sc *StorageConsumer) WithNext(next ...Consumer) *StorageConsumer {
 func (sc *StorageConsumer) WaitForDone() {
 	<-sc.done
 }
-func (sc *StorageConsumer) Lease() chan<- []*state.PriceValue {
+func (sc *StorageConsumer) Lease() chan<- []price.Value {
 	sc.leasesMutex.Lock()
 	defer sc.leasesMutex.Unlock()
 	sc.leases++
@@ -75,7 +80,7 @@ func (sc *StorageConsumer) Run() {
 			}
 			currencyPrices.Commit(price)
 		}
-		var nextItems []*state.PriceValue
+		var nextItems []price.Value
 		for currency, currencyPrices := range sc.state {
 			if len(currencyPrices.Changes()) > 0 {
 				if err := sc.back.SavePrices(ctx, currency, currencyPrices); err != nil {

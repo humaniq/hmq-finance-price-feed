@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 	"crypto/ecdsa"
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"math"
 	"math/big"
 	"time"
@@ -63,8 +63,8 @@ func NewPricesContractSetter(rawUrl string, chainId int64, contractAddressHex st
 	}, nil
 }
 
-func (pc *PricesContractSetter) SavePrices(ctx context.Context, key string, value *state.AssetPrices) error {
-	for _, price := range value.Prices() {
+func (pc *PricesContractSetter) SavePrices(ctx context.Context, key string, value *price.Asset) error {
+	for _, price := range value.Prices {
 		if err := pc.SetSymbolPrice(ctx, price.Symbol, price.Currency, price.Price, price.TimeStamp); err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func NewPricesContractGetter(rawUrl string, chainId int64, contractAddressHex st
 		sourceAddress: common.HexToAddress(sourceAddressHex),
 	}, nil
 }
-func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*state.PriceValue, error) {
+func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol string, currency string) (*price.Value, error) {
 	value, ts, err := pc.caller.GetPrice(
 		&bind.CallOpts{
 			From:    pc.clientAddress,
@@ -126,6 +126,12 @@ func (pc *PricesContractGetter) GetLatestSymbolPrice(ctx context.Context, symbol
 	if err != nil {
 		return nil, err
 	}
-	record := state.NewPriceValue("contract", symbol, currency, float64(value/1000000), time.Unix(int64(ts), 0))
-	return record, nil
+	record := price.Value{
+		TimeStamp: time.Unix(int64(ts), 0),
+		Source:    "contract",
+		Symbol:    symbol,
+		Currency:  currency,
+		Price:     float64(value / 1000000),
+	}
+	return &record, nil
 }

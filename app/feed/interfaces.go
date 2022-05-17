@@ -3,15 +3,15 @@ package feed
 import (
 	"context"
 
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 )
 
 type Provider interface {
-	Provide(ctx context.Context, feed chan<- []*state.PriceValue) error
+	Provide(ctx context.Context, feed chan<- []price.Value) error
 }
 
 type Releaser interface {
-	Lease() chan<- []*state.PriceValue
+	Lease() chan<- []price.Value
 	Release()
 }
 
@@ -20,7 +20,7 @@ type Waiter interface {
 }
 
 type Consumer interface {
-	In() chan<- []*state.PriceValue
+	In() chan<- []price.Value
 	Waiter
 	Releaser
 }
