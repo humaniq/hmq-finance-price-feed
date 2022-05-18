@@ -20,7 +20,7 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
-const defaultProviderTickPeriod = time.Minute
+const defaultProviderTickPeriod = time.Minute * 5
 
 func main() {
 
