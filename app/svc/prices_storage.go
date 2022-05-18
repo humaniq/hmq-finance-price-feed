@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+
 	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 )
@@ -25,14 +26,10 @@ func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []
 	result := make(map[string]SymbolPrices)
 	for _, currency := range currencies {
 		actualCurrency := currency
-		estimate := false
 		if ps.mapping != nil {
 			cur, found := ps.mapping[currency]
 			if !found {
 				continue
-			}
-			if cur != currency {
-				estimate = true
 			}
 			actualCurrency = cur
 		}
@@ -40,32 +37,36 @@ func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []
 		if err != nil {
 			return nil, err
 		}
+		pricesGetter := state.NewAssetGetter(prices)
 		for _, symbol := range symbols {
-			var value *state.Price
-			if estimate {
-				value = prices.Estimate(symbol, currency, withHistory)
-			} else {
-				value = prices.Get(symbol, withHistory)
-			}
-			if value == nil {
+			value, err := pricesGetter.GetPrice(ctx, symbol, currency)
+			if err != nil {
 				continue
 			}
-			record, found := result[symbol]
+			symbolPrices, found := result[symbol]
 			if !found {
-				record = make(map[string]SymbolPrice)
+				symbolPrices = make(map[string]SymbolPrice)
 			}
-			val := SymbolPrice{
-				Source:    value.Current.Source,
-				Value:     value.Current.Price,
-				TimeStamp: value.Current.TimeStamp,
+			symbolPrice := SymbolPrice{
+				Source:    value.Source,
+				Value:     value.Price,
+				TimeStamp: value.TimeStamp,
 			}
 			if withHistory {
-				for _, rec := range value.History {
-					val.History = append(val.History, SymbolPricesHistory{TimeStamp: rec.TimeStamp, Value: rec.Value})
+				history, err := pricesGetter.GetHistory(ctx, symbol, currency)
+				if err == nil {
+					historyList := make([]SymbolPricesHistory, 0, len(history))
+					for _, historyItem := range history {
+						historyList = append(historyList, SymbolPricesHistory{
+							TimeStamp: historyItem.TimeStamp,
+							Value:     historyItem.Price,
+						})
+					}
+					symbolPrice.History = historyList
 				}
 			}
-			record[currency] = val
-			result[symbol] = record
+			symbolPrices[value.Currency] = symbolPrice
+			result[symbol] = symbolPrices
 		}
 	}
 	return result, nil

@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
@@ -49,7 +49,7 @@ func MustGetStringListFromCtx(ctx context.Context, key string) []string {
 	return ctx.Value(key).([]string)
 }
 
-func GetPricesFunc(backend svc.Prices) http.HandlerFunc {
+func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
@@ -68,7 +68,7 @@ func GetPricesFunc(backend svc.Prices) http.HandlerFunc {
 		for _, currency := range currencies {
 			prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 			if err != nil {
-				if errors.Is(err, storage.ErrNotFound) {
+				if errors.Is(err, app.ErrNotFound) {
 					logger.Warn(ctx, "[API] prices not found for %s", currency)
 					continue
 				}

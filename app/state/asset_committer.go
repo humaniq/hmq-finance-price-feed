@@ -6,7 +6,7 @@ import (
 
 type AssetCommitter struct {
 	asset   *price.Asset
-	changed []*price.Value
+	changed []price.Value
 	filters []CommitValueFilterFunc
 }
 
@@ -36,13 +36,13 @@ func (ac *AssetCommitter) Commit(value price.Value) bool {
 	})
 	assetHistory.Sort()
 	ac.asset.History[value.Symbol] = assetHistory
-	ac.changed = append(ac.changed, &value)
+	ac.changed = append(ac.changed, value)
 	return true
 }
 func (ac *AssetCommitter) Stage() *price.Asset {
-	ac.changed = []*price.Value{}
+	ac.changed = []price.Value{}
 	return ac.asset
 }
-func (ac *AssetCommitter) Changes() []*price.Value {
+func (ac *AssetCommitter) Changes() []price.Value {
 	return ac.changed
 }

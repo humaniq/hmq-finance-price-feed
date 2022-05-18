@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/humaniq/hmq-finance-price-feed/app"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"os"
 	"strconv"
 	"sync"
@@ -11,7 +14,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/feed"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
@@ -50,22 +52,20 @@ func main() {
 	}
 	backend := storage.NewPricesDS(gdsClient)
 
-	pricesState := make(map[string]*state.AssetPrices)
+	pricesState := make(map[string]*state.AssetCommitter)
 	for _, currency := range cfg.Assets {
 		currencyState, err := backend.LoadPrices(ctx, currency)
 		if err != nil {
-			if !errors.Is(err, storage.ErrNotFound) {
+			if !errors.Is(err, app.ErrNotFound) {
 				logger.Fatal(ctx, "prices state init: %s", err)
 				return
 			}
-			currencyState = state.NewPrices(currency)
+			currencyState = price.NewAsset(currency)
 		}
-		currencyState = currencyState.WithCommitFilters(
-			state.CommitTimestampFilterFunc(),
-			state.CommitCurrenciesFilterFunc(map[string]bool{currency: true}),
-			state.CommitPricePercentDiffFilterFinc(cfg.Diffs),
+		pricesState[currency] = state.NewAssetCommitter(currencyState).WithFilters(
+			state.CommitValueCurrenciesFilterFunc(map[string]bool{currency: true}),
+			state.CommitValuePricePercentDiffFilterFinc(cfg.Diffs),
 		)
-		pricesState[currency] = currencyState
 	}
 
 	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
@@ -87,7 +87,11 @@ func main() {
 			return
 		}
 
-		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, pricesState)
+		ps := make(map[string]*state.AssetCommitter)
+		ps["usd"] = pricesState["usd"]
+		ps["eur"] = pricesState["eur"]
+
+		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, ps)
 		go contractConsumer.Run()
 		defer contractConsumer.WaitForDone()
 		dsConsumer = dsConsumer.WithNext(

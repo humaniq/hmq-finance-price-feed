@@ -21,16 +21,12 @@ type StorageConsumer struct {
 	name        string
 }
 
-func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*price.Asset) *StorageConsumer {
-	stateValue := make(map[string]*state.AssetCommitter)
-	for key, val := range pricesState {
-		stateValue[key] = state.NewAssetCommitter(val)
-	}
+func NewStorageConsumer(name string, backend storage.PricesSaver, pricesState map[string]*state.AssetCommitter) *StorageConsumer {
 	consumer := &StorageConsumer{
 		back:  backend,
 		in:    make(chan []price.Value),
 		done:  make(chan interface{}),
-		state: stateValue,
+		state: pricesState,
 		name:  name,
 	}
 	return consumer
@@ -82,16 +78,16 @@ func (sc *StorageConsumer) Run() {
 		}
 		var nextItems []price.Value
 		for currency, currencyPrices := range sc.state {
-			if len(currencyPrices.Changes()) > 0 {
-				if err := sc.back.SavePrices(ctx, currency, currencyPrices); err != nil {
+			changes := currencyPrices.Changes()
+			if len(changes) > 0 {
+				if err := sc.back.SavePrices(ctx, currency, currencyPrices.Stage()); err != nil {
 					logger.Error(ctx, "[%s] error saving prices: %s", sc.name, err)
 					continue
 				}
-				nextItems = append(nextItems, currencyPrices.Changes()...)
-				for _, priceChange := range currencyPrices.Changes() {
+				nextItems = append(nextItems, changes...)
+				for _, priceChange := range changes {
 					logger.Info(ctx, "[%s] price changed: %+v", sc.name, priceChange)
 				}
-				currencyPrices.Stage()
 			}
 		}
 		if len(nextItems) > 0 {
