@@ -63,7 +63,7 @@ func main() {
 	}
 	dsBackend := storage.NewPricesDS(gdsClient)
 
-	backend := storage.NewPricesCache(priceCache, time.Minute*2).Wrap(dsBackend)
+	backend := storage.NewInMemory(time.Minute * 5).Wrap(storage.NewPricesCache(priceCache, time.Minute*2).Wrap(dsBackend))
 
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
