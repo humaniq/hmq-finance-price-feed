@@ -54,7 +54,7 @@ func main() {
 
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
-		dsKind = "hmq_current_prices"
+		dsKind = "hmq_prices_assets"
 	}
 	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
 	if err != nil {

@@ -25,7 +25,9 @@ type dsHistoryRecord struct {
 
 func (r *dsPricesAsset) ToAsset() *price.Asset {
 	prices := price.NewAsset(r.Key)
+	names := make([]string, 0, len(r.Prices))
 	for _, priceValue := range r.Prices {
+		names = append(names, priceValue.Symbol)
 		prices.Prices[priceValue.Symbol] = priceValue
 	}
 	for _, historyRecord := range r.History {
