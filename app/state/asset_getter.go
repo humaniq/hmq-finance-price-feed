@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"log"
 	"sort"
 
 	"github.com/humaniq/hmq-finance-price-feed/app"
@@ -28,6 +29,7 @@ func (ag *AssetGetter) GetPrice(ctx context.Context, symbol string, currency str
 		if !found {
 			return nil, app.ErrNotFound
 		}
+		log.Println(currencyPriceValue)
 		if currencyPriceValue.Price == 0 {
 			return nil, app.ErrValueInvalid
 		}

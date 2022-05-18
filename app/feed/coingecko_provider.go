@@ -19,13 +19,16 @@ func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols 
 }
 
 func (cgpp *CoinGeckoPriceProvider) Provide(ctx context.Context, feed chan<- []price.Value) error {
+	logger.Info(ctx, "providing coingecko")
 	for range cgpp.ticker.C {
+		now := time.Now()
+		logger.Info(ctx, "coinGecko tick: %s", now)
 		result, err := cgpp.get(ctx)
 		if err != nil {
 			logger.Error(ctx, "error getting from coingecko: %s", err.Error())
 			continue
 		}
-		now := time.Now()
+		logger.Info(ctx, "coingecko: %+v", result)
 		var items []price.Value
 		for key, value := range result {
 			for k, v := range value {

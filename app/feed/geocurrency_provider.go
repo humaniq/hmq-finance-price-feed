@@ -32,6 +32,8 @@ func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- [
 	}
 	logger.Info(ctx, "providing geocurrency: %+v for %+v", symbolsList, gcpp.currencies)
 	for range gcpp.ticker.C {
+		now := time.Now()
+		logger.Info(ctx, "geoCurrency tick: %s", now)
 		var items []price.Value
 		for currency, currencyKey := range gcpp.currencies {
 			response, err := gcpp.client.GetConversionRates(ctx, currency, 1, symbolsList...)
@@ -39,7 +41,6 @@ func (gcpp *GeoCurrencyPriceProvider) Provide(ctx context.Context, feed chan<- [
 				logger.Error(ctx, "error getting from geoCurrency: %s", err.Error())
 				continue
 			}
-			now := time.Now()
 			for key, value := range response {
 				items = append(items, price.Value{
 					TimeStamp: now,

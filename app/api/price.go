@@ -2,14 +2,12 @@ package api
 
 import (
 	"context"
-	"errors"
-	"github.com/humaniq/hmq-finance-price-feed/app"
+	"net/http"
+	"strings"
+
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
-	"net/http"
-	"strings"
 )
 
 const CtxSymbolKey = "symbol"
@@ -65,40 +63,38 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 
 		resultMap := make(map[string][]PriceRecord)
 
-		for _, currency := range currencies {
-			prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
-			if err != nil {
-				if errors.Is(err, app.ErrNotFound) {
-					logger.Warn(ctx, "[API] prices not found for %s", currency)
-					continue
-				}
-				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
-				return
-			}
-			for _, symbol := range symbols {
-				list := resultMap[symbol]
-				value, found := prices[symbol]
-				if found {
-					for key, val := range value {
-						priceRecord := PriceRecord{
-							Source:    val.Source,
-							Currency:  key,
-							TimeStamp: val.TimeStamp,
-							Price:     val.Value,
-						}
-						if withHistory {
-							for _, hv := range val.History {
-								priceRecord.History = append(priceRecord.History, PriceHistoryRecord{
-									TimeStamp: hv.TimeStamp,
-									Price:     hv.Value,
-								})
-							}
-						}
-						list = append(list, priceRecord)
+		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
+		if err != nil {
+			//if errors.Is(err, app.ErrNotFound) {
+			//	logger.Warn(ctx, "[API] prices not found")
+			//	continue
+			//}
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
+			return
+		}
+		for _, symbol := range symbols {
+			list := resultMap[symbol]
+			value, found := prices[symbol]
+			if found {
+				for key, val := range value {
+					priceRecord := PriceRecord{
+						Source:    val.Source,
+						Currency:  key,
+						TimeStamp: val.TimeStamp,
+						Price:     val.Value,
 					}
+					if withHistory {
+						for _, hv := range val.History {
+							priceRecord.History = append(priceRecord.History, PriceHistoryRecord{
+								TimeStamp: hv.TimeStamp,
+								Price:     hv.Value,
+							})
+						}
+					}
+					list = append(list, priceRecord)
 				}
-				resultMap[symbol] = list
 			}
+			resultMap[symbol] = list
 		}
 
 		httpext.JSON(w, httpapi.NewOkResponse().WithPayload(resultMap))

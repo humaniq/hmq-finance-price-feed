@@ -3,22 +3,24 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/humaniq/hmq-finance-price-feed/app"
-	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/feed"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
+
+const defaultProviderTickPeriod = time.Minute
 
 func main() {
 
@@ -43,7 +45,7 @@ func main() {
 
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
-		dsKind = "hmq_current_prices"
+		dsKind = "hmq_prices_assets"
 	}
 	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
 	if err != nil {
@@ -109,23 +111,24 @@ func main() {
 	for _, provider := range cfg.Providers {
 		switch provider.Type {
 		case "coingecko":
-			go func(name string) {
+			logger.Info(ctx, "%+v", provider)
+			go func(providerConfig config.ProviderConfig) {
 				defer wg.Done()
 				defer dsConsumer.Release()
-				if err := feed.NewCoinGeckoProvider(time.Minute*5, prices.NewCoinGecko(), provider.Symbols, provider.Currencies).
+				if err := feed.NewCoinGeckoProvider(defaultProviderTickPeriod, prices.NewCoinGecko(), providerConfig.Symbols, providerConfig.Currencies).
 					Provide(ctx, dsConsumer.Lease()); err != nil {
-					logger.Fatal(ctx, "%s provider fail: %s", name, err.Error())
+					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
 				}
-			}(provider.Name)
+			}(provider)
 		case "geocurrency":
-			go func(name string) {
+			go func(providerConfig config.ProviderConfig) {
 				defer wg.Done()
 				defer dsConsumer.Release()
-				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(time.Minute*5, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), provider.Symbols, provider.Currencies)
+				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(defaultProviderTickPeriod, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), providerConfig.Symbols, providerConfig.Currencies)
 				if err := geoCurrencyProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
-					logger.Fatal(ctx, "%s provider fail: %s", name, err.Error())
+					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
 				}
-			}(provider.Name)
+			}(provider)
 		default:
 			logger.Fatal(ctx, "UNKNOWN PROVIDER: %s", provider.Type)
 			return

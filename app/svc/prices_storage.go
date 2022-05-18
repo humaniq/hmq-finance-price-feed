@@ -35,7 +35,7 @@ func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []
 		}
 		prices, err := ps.backend.LoadPrices(ctx, actualCurrency)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		pricesGetter := state.NewAssetGetter(prices)
 		for _, symbol := range symbols {

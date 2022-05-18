@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +21,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -34,6 +35,16 @@ func main() {
 		}
 	}
 	ctx := context.Background()
+
+	configPath := os.Getenv("CONFIG_FILE_PATH")
+	if configPath == "" {
+		configPath = "/etc/hmq/price-api.yaml"
+	}
+	cfg, err := config.ApiConfigFromFile(configPath)
+	if err != nil {
+		logger.Fatal(ctx, "error getting config: %s", err)
+		return
+	}
 
 	priceCache, err := cache.NewLRU(1000)
 	if err != nil {
@@ -56,13 +67,15 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
-		r.Use(chim.Logger)
-		r.Use(cors.Handler(cors.Options{
-			AllowedOrigins: []string{"https://*", "http://*"},
-			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "x-auth-token"},
-			MaxAge:         300,
-		}))
+		r.Use(
+			chim.Logger,
+			cors.Handler(cors.Options{
+				AllowedOrigins: []string{"https://*", "http://*"},
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "x-auth-token"},
+				MaxAge:         300,
+			}),
+		)
 		r.Route("/api/v1", func(r chi.Router) {
 			if openapiPath := os.Getenv("OPENAPI_PATH"); openapiPath != "" {
 				r.Group(func(r chi.Router) {
@@ -70,12 +83,12 @@ func main() {
 						http.ServeFile(w, r, openapiPath)
 					})
 				})
-				r.Group(func(r chi.Router) {
-					r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToLower, ",", []string{"eth"}))
-					r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToLower, ",", []string{"eth", "usd", "eur", "rub"}))
-					r.Get("/prices/list", api.GetPricesFunc(svc.NewPrices(backend)))
-				})
 			}
+			r.Group(func(r chi.Router) {
+				r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToLower, ",", []string{"eth"}))
+				r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToLower, ",", []string{"eth", "usd", "eur", "rub"}))
+				r.Get("/prices/list", api.GetPricesFunc(svc.NewPrices(backend).WithMapping(cfg.Currencies)))
+			})
 		})
 	})
 
