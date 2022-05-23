@@ -34,65 +34,39 @@ components:
         timeStamp:
           type: string
 paths:
-  /price/{symbol}:
+  /prices/list:
     get:
       tags:
         - prices
       parameters:
         - name: symbol
-          in: path
-          required: true
+          in: query
+          required: false
+          description: comma-separated list of symbols needed
         - name: currency
           in: query
           required: false
-          default: 'ETH'
-      responses:
-        200:
-          description: price value for symbol given
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PriceRecord'
-        400:
-          description: bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIError'
-        404:
-          description: bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIError'
-        500:
-          description: internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIError'
-  /prices:
-    get:
-      tags:
-        - prices
-      parameters:
-        - name: payload
-          in: body
+          description: comma-separated list of currencies needed
+        - name: history
+          in: query
           required: false
-          description: list of symbols needed
-          schema:
-            type: array
-            items:
-              type: string
+          description: history flag
       responses:
         200:
-          description: price values for symbol given
+          description: price values for symbol/currency given
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PriceRecord'
+                type: object
+                properties:
+                  status:
+                    type: string
+                  payload:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PriceRecord'
         400:
           description: bad request
           content:

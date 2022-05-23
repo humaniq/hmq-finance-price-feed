@@ -41,4 +41,5 @@ contract PriceData {
     function getUsdPrice(address source, string memory symbol) external view returns (uint64, uint64) {
         return this.getPrice(source, symbol, "USD");
     }
+
 }

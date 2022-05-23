@@ -1,60 +1,102 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
+	"context"
+	"net/http"
+	"strings"
+
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
-	"net/http"
 )
 
 const CtxSymbolKey = "symbol"
 const CtxCurrencyKey = "currency"
-const DefaultCurrency = "ETH"
 
-func GetPriceForSymbolHandlerFunc(state svc.Pricer) http.HandlerFunc {
+func MustHaveStringListInQueryOrDefaultsMiddlewareFunc(queryKey string, ctxKey string, caseCast int, delimiter string, defaults []string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			stringValue := r.URL.Query().Get(queryKey)
+			if stringValue == "" {
+				if defaults != nil && len(defaults) > 0 {
+					next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ctxKey, defaults)))
+					return
+				}
+				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("query is empty"), http.StatusBadRequest)
+				return
+			}
+			list := strings.Split(stringValue, delimiter)
+			if caseCast != httpapi.CaseSensitive {
+				castList := make([]string, 0, len(list))
+				for _, item := range list {
+					if caseCast == httpapi.CaseToUpper {
+						castList = append(castList, strings.ToUpper(item))
+					}
+					if caseCast == httpapi.CaseToLower {
+						castList = append(castList, strings.ToLower(item))
+					}
+				}
+				list = castList
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ctxKey, list)))
+		})
+	}
+}
+func MustGetStringListFromCtx(ctx context.Context, key string) []string {
+	return ctx.Value(key).([]string)
+}
+
+func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		symbol := httpapi.MustGetStringValueFromContext(ctx, CtxSymbolKey)
-		currency, available := httpapi.GetStringValueFromContext(ctx, CtxCurrencyKey)
-		if !available {
-			currency = DefaultCurrency
+		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
+		currencies := MustGetStringListFromCtx(ctx, CtxCurrencyKey)
+		if len(symbols) == 0 || len(currencies) == 0 {
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("invalid symbol/currency mapping"), http.StatusBadRequest)
+			return
 		}
-		price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
+		withHistory := false
+		if histQuery := r.URL.Query().Get("history"); histQuery != "" {
+			withHistory = true
+		}
+
+		resultMap := make(map[string][]PriceRecord)
+
+		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 		if err != nil {
-			if errors.Is(err, svc.ErrNoValue) {
-				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("not found"), http.StatusNotFound)
-				return
-			}
-			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("internal error"), http.StatusInternalServerError)
+			//if errors.Is(err, app.ErrNotFound) {
+			//	logger.Warn(ctx, "[API] prices not found")
+			//	continue
+			//}
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
+			return
 		}
-		httpext.JSON(w, price)
+		for _, symbol := range symbols {
+			list := resultMap[symbol]
+			value, found := prices[symbol]
+			if found {
+				for key, val := range value {
+					priceRecord := PriceRecord{
+						Source:    val.Source,
+						Currency:  key,
+						TimeStamp: val.TimeStamp,
+						Price:     val.Value,
+					}
+					if withHistory {
+						for _, hv := range val.History {
+							priceRecord.History = append(priceRecord.History, PriceHistoryRecord{
+								TimeStamp: hv.TimeStamp,
+								Price:     hv.Value,
+							})
+						}
+					}
+					list = append(list, priceRecord)
+				}
+			}
+			resultMap[symbol] = list
+		}
+
+		httpext.JSON(w, httpapi.NewOkResponse().WithPayload(resultMap))
 	}
 }
-
-func GetPricesForListFunc(state svc.Pricer) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		currency, available := httpapi.GetStringValueFromContext(ctx, CtxCurrencyKey)
-		if !available {
-			currency = DefaultCurrency
-		}
-		var list []string
-		if err := json.NewDecoder(r.Body).Decode(&list); err != nil || len(list) == 0 {
-			list = defaultSymbolList
-		}
-		result := make([]*svc.PriceRecord, 0, len(list))
-		for _, symbol := range list {
-			price, err := state.GetLatestSymbolPrice(ctx, symbol, currency)
-			if err != nil && !errors.Is(err, svc.ErrNoValue) {
-				httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error reading price"), http.StatusInternalServerError)
-				return
-			}
-			result = append(result, price)
-		}
-		httpext.JSON(w, result)
-	}
-}
-
-var defaultSymbolList = []string{"ETH", "BTC", "USDT"}
