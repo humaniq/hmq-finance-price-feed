@@ -115,8 +115,9 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 }
 
 func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPricesHistory) []*PriceHistoryRecord {
+	now := time.Now()
 	result := make([]*PriceHistoryRecord, 0, granularity)
-	period := time.Now().Sub(since) / time.Duration(granularity)
+	period := now.Sub(since) / time.Duration(granularity)
 	for index := 0; index < granularity; index++ {
 		result = append(result, &PriceHistoryRecord{
 			TimeStamp: since.Add(period * time.Duration(index)),
