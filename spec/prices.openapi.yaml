@@ -64,8 +64,8 @@ paths:
                   payload:
                     type: object
                     additionalProperties:
-                      type: array
-                      items:
+                      type: object
+                      additionalProperties:
                         $ref: '#/components/schemas/PriceRecord'
         400:
           description: bad request

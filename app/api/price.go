@@ -63,7 +63,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 			withHistory = true
 		}
 
-		resultMap := make(map[string][]PriceRecord)
+		resultMap := make(map[string]map[string]PriceRecord)
 
 		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 		if err != nil {
@@ -104,7 +104,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 							}
 						}
 					}
-					list = append(list, priceRecord)
+					list[priceRecord.Currency] = priceRecord
 				}
 			}
 			resultMap[symbol] = list
