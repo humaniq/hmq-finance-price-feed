@@ -71,7 +71,10 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 			return
 		}
 		for _, symbol := range symbols {
-			list := resultMap[symbol]
+			list, found := resultMap[symbol]
+			if !found {
+				list = make(map[string]PriceRecord)
+			}
 			value, found := prices[symbol]
 			if found {
 				for key, val := range value {
