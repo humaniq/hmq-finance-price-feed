@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
@@ -56,24 +57,24 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("invalid symbol/currency mapping"), http.StatusBadRequest)
 			return
 		}
+		history := r.URL.Query().Get("history")
 		withHistory := false
-		if histQuery := r.URL.Query().Get("history"); histQuery != "" {
+		if history != "" {
 			withHistory = true
 		}
 
-		resultMap := make(map[string][]PriceRecord)
+		resultMap := make(map[string]map[string]PriceRecord)
 
 		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 		if err != nil {
-			//if errors.Is(err, app.ErrNotFound) {
-			//	logger.Warn(ctx, "[API] prices not found")
-			//	continue
-			//}
 			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
 			return
 		}
 		for _, symbol := range symbols {
-			list := resultMap[symbol]
+			list, found := resultMap[symbol]
+			if !found {
+				list = make(map[string]PriceRecord)
+			}
 			value, found := prices[symbol]
 			if found {
 				for key, val := range value {
@@ -83,15 +84,30 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 						TimeStamp: val.TimeStamp,
 						Price:     val.Value,
 					}
-					if withHistory {
-						for _, hv := range val.History {
-							priceRecord.History = append(priceRecord.History, PriceHistoryRecord{
-								TimeStamp: hv.TimeStamp,
-								Price:     hv.Value,
-							})
+					if history != "" {
+						switch history {
+						case "year":
+							priceRecord.History = buildHistoryChart(time.Now().Add(-8760*time.Hour), 48, val.History)
+							break
+						case "month":
+							priceRecord.History = buildHistoryChart(time.Now().Add(-720*time.Hour), 48, val.History)
+							break
+						case "week":
+							priceRecord.History = buildHistoryChart(time.Now().Add(-168*time.Hour), 48, val.History)
+							break
+						case "day":
+							priceRecord.History = buildHistoryChart(time.Now().Add(-24*time.Hour), 48, val.History)
+							break
+						default:
+							for _, hv := range val.History {
+								priceRecord.History = append(priceRecord.History, &PriceHistoryRecord{
+									TimeStamp: hv.TimeStamp,
+									Price:     hv.Value,
+								})
+							}
 						}
 					}
-					list = append(list, priceRecord)
+					list[priceRecord.Currency] = priceRecord
 				}
 			}
 			resultMap[symbol] = list
@@ -99,4 +115,43 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 
 		httpext.JSON(w, httpapi.NewOkResponse().WithPayload(resultMap))
 	}
+}
+
+func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPricesHistory) []*PriceHistoryRecord {
+	now := time.Now()
+	result := make([]*PriceHistoryRecord, 0, granularity)
+	period := now.Sub(since) / time.Duration(granularity)
+	for index := 0; index < granularity; index++ {
+		result = append(result, &PriceHistoryRecord{
+			TimeStamp: since.Add(period * time.Duration(index)),
+			Price:     0,
+		})
+	}
+	cursor := 0
+	for _, record := range records {
+		if cursor >= granularity {
+			break
+		}
+		cursorValue := result[cursor]
+		if record.TimeStamp.Before(cursorValue.TimeStamp) {
+			cursorValue.Price = record.Value
+			continue
+		}
+		for cursor < granularity {
+			cursor++
+			cursorValue = result[cursor]
+			cursorValue.Price = record.Value
+			if record.TimeStamp.Before(cursorValue.TimeStamp) {
+				break
+			}
+		}
+	}
+	if cursor < granularity-1 {
+		latestValue := result[cursor].Price
+		for cursor < granularity {
+			result[cursor].Price = latestValue
+			cursor++
+		}
+	}
+	return result
 }

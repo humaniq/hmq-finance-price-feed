@@ -50,7 +50,7 @@ paths:
         - name: history
           in: query
           required: false
-          description: history flag
+          description: history type, one of day|week|month|year
       responses:
         200:
           description: price values for symbol/currency given
@@ -64,8 +64,8 @@ paths:
                   payload:
                     type: object
                     additionalProperties:
-                      type: array
-                      items:
+                      type: object
+                      additionalProperties:
                         $ref: '#/components/schemas/PriceRecord'
         400:
           description: bad request
