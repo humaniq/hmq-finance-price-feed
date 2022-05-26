@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/humaniq/hmq-finance-price-feed/app"
 	"sync"
 	"time"
 
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
 )
 

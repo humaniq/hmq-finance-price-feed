@@ -4,9 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/app/svc"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,10 +14,13 @@ import (
 	chim "github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/humaniq/hmq-finance-price-feed/app/api"
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -54,14 +54,14 @@ func main() {
 
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
-		dsKind = "hmq_prices_assets"
+		dsKind = "hmq_price_assets"
 	}
 	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
 	if err != nil {
 		logger.Fatal(ctx, "gdsClient init: %s", err)
 		return
 	}
-	dsBackend := storage.NewPricesDS(gdsClient)
+	dsBackend := storage.NewPricesDSv2(gdsClient)
 
 	backend := storage.NewInMemory(time.Minute * 5).Wrap(storage.NewPricesCache(priceCache, time.Minute*2).Wrap(dsBackend))
 

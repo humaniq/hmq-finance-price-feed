@@ -133,11 +133,13 @@ func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPri
 			break
 		}
 		cursorValue := result[cursor]
-		if record.TimeStamp.Before(cursorValue.TimeStamp) {
+		if cursor == 0 || record.TimeStamp.Before(cursorValue.TimeStamp) {
 			cursorValue.Price = record.Value
-			continue
+			if cursor != 0 {
+				continue
+			}
 		}
-		for cursor < granularity {
+		for cursor < granularity-1 {
 			cursor++
 			cursorValue = result[cursor]
 			cursorValue.Price = record.Value
