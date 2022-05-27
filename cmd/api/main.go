@@ -47,14 +47,14 @@ func main() {
 
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
-		dsKind = "hmq_prices_assets"
+		dsKind = "hmq_price_assets"
 	}
 	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
 	if err != nil {
 		logger.Fatal(ctx, "gdsClient init: %s", err)
 		return
 	}
-	dsBackend := storage.NewPricesDS(gdsClient)
+	dsBackend := storage.NewPricesDSv2(gdsClient)
 
 	backend := storage.NewInMemory(time.Minute*10).Wrap(dsBackend).Warm(context.Background(), cfg.Assets, time.Minute*9)
 

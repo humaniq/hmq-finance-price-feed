@@ -21,6 +21,21 @@ currencies:
   frw: usd
   krw: usd
 providers:
+  - name: coingecko-eth-hmq
+    type: coingecko
+    symbols:
+      ethereum: eth
+      humaniq: hmq
+      bitcoin: btc
+    currencies:
+      btc: btc
+      eth: eth
+      usd: usd
+      eur: eur
+      rub: rub
+      bnb: bnb
+      cny: cny
+      jpy: jpy
   - name: coingecko
     type: coingecko
     symbols:

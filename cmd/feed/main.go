@@ -45,14 +45,14 @@ func main() {
 
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
-		dsKind = "hmq_prices_assets"
+		dsKind = "hmq_price_assets"
 	}
 	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
 	if err != nil {
 		logger.Fatal(ctx, "gdsClient init: %s", err)
 		return
 	}
-	backend := storage.NewPricesDS(gdsClient)
+	backend := storage.NewPricesDSv2(gdsClient)
 
 	pricesState := make(map[string]*state.AssetCommitter)
 	for _, currency := range cfg.Assets {
