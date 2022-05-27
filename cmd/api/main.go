@@ -19,7 +19,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/api"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"golang.org/x/crypto/acme/autocert"
@@ -46,12 +45,6 @@ func main() {
 		return
 	}
 
-	priceCache, err := cache.NewLRU(1000)
-	if err != nil {
-		logger.Fatal(ctx, "priceCache init: %s", err)
-		return
-	}
-
 	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
 	if dsKind == "" {
 		dsKind = "hmq_prices_assets"
@@ -63,7 +56,7 @@ func main() {
 	}
 	dsBackend := storage.NewPricesDS(gdsClient)
 
-	backend := storage.NewInMemory(time.Minute * 5).Wrap(storage.NewPricesCache(priceCache, time.Minute*2).Wrap(dsBackend))
+	backend := storage.NewInMemory(time.Minute * 5).Wrap(dsBackend)
 
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
