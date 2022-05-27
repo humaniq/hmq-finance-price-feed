@@ -50,7 +50,15 @@ paths:
         - name: history
           in: query
           required: false
-          description: history type, one of day|week|month|year
+          description: history type, one of day|week|month|year|custom
+        - name: historyPrecision
+          in: query
+          required: false
+          description: number of records in history list
+        - name: sinceTimestamp
+          in: query
+          required: false
+          description: Unix TimeStamp (UTC) history chart starts with, works with history=custom only
       responses:
         200:
           description: price values for symbol/currency given

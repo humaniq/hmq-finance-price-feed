@@ -2,7 +2,10 @@ package api
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -63,6 +66,12 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 			withHistory = true
 		}
 
+		precisionRequest := r.URL.Query().Get("historyPrecision")
+		precisionCount, err := strconv.Atoi(precisionRequest)
+		if err != nil {
+			precisionCount = 48
+		}
+
 		resultMap := make(map[string]map[string]PriceRecord)
 
 		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
@@ -86,17 +95,26 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 					}
 					if history != "" {
 						switch history {
+						case "custom":
+							sinceRequest := r.URL.Query().Get("sinceTimestamp")
+							since := time.Now().Add(time.Hour * 24 * (-7))
+							sinceNumber, err := strconv.ParseInt(sinceRequest, 10, 64)
+							if err == nil {
+								since = time.Unix(sinceNumber, 0)
+							}
+							priceRecord.History = buildHistoryChart(since, precisionCount, val.History)
+							break
 						case "year":
-							priceRecord.History = buildHistoryChart(time.Now().Add(-8760*time.Hour), 48, val.History)
+							priceRecord.History = buildHistoryChart(time.Now().Add(-8760*time.Hour), precisionCount, val.History)
 							break
 						case "month":
-							priceRecord.History = buildHistoryChart(time.Now().Add(-720*time.Hour), 48, val.History)
+							priceRecord.History = buildHistoryChart(time.Now().Add(-720*time.Hour), precisionCount, val.History)
 							break
 						case "week":
-							priceRecord.History = buildHistoryChart(time.Now().Add(-168*time.Hour), 48, val.History)
+							priceRecord.History = buildHistoryChart(time.Now().Add(-168*time.Hour), precisionCount, val.History)
 							break
 						case "day":
-							priceRecord.History = buildHistoryChart(time.Now().Add(-24*time.Hour), 48, val.History)
+							priceRecord.History = buildHistoryChart(time.Now().Add(-24*time.Hour), precisionCount, val.History)
 							break
 						default:
 							for _, hv := range val.History {
@@ -120,39 +138,31 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPricesHistory) []*PriceHistoryRecord {
 	now := time.Now()
 	result := make([]*PriceHistoryRecord, 0, granularity)
-	period := now.Sub(since) / time.Duration(granularity)
+	period := now.Sub(since) / time.Duration(granularity-1)
 	for index := 0; index < granularity; index++ {
 		result = append(result, &PriceHistoryRecord{
 			TimeStamp: since.Add(period * time.Duration(index)),
 			Price:     0,
 		})
 	}
-	cursor := 0
+	estimator := make([]*PriceHistoryRecord, 0, granularity+len(records))
+	estimator = append(estimator, result...)
 	for _, record := range records {
-		if cursor >= granularity {
-			break
-		}
-		cursorValue := result[cursor]
-		if cursor == 0 || record.TimeStamp.Before(cursorValue.TimeStamp) {
-			cursorValue.Price = record.Value
-			if cursor != 0 {
-				continue
-			}
-		}
-		for cursor < granularity-1 {
-			cursor++
-			cursorValue = result[cursor]
-			cursorValue.Price = record.Value
-			if record.TimeStamp.Before(cursorValue.TimeStamp) {
-				break
-			}
-		}
+		estimator = append(estimator, &PriceHistoryRecord{
+			TimeStamp: record.TimeStamp,
+			Price:     record.Value,
+		})
 	}
-	if cursor < granularity-1 {
-		latestValue := result[cursor].Price
-		for cursor < granularity {
-			result[cursor].Price = latestValue
-			cursor++
+	sort.Slice(estimator, func(i, j int) bool {
+		return estimator[i].TimeStamp.Before(estimator[j].TimeStamp)
+	})
+	currentPrice := float64(0)
+	for _, e := range estimator {
+		logger.Info(context.Background(), "ESTIMATING: %+v", e)
+		if e.Price == 0 {
+			e.Price = currentPrice
+		} else {
+			currentPrice = e.Price
 		}
 	}
 	return result
