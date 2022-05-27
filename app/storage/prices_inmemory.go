@@ -8,6 +8,7 @@ import (
 
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type AssetInMemoryRecord struct {
