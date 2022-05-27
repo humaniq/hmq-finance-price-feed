@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/humaniq/hmq-finance-price-feed/app"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"sync"
 	"time"
 
@@ -30,6 +31,29 @@ func NewInMemory(expiry time.Duration) *InMemory {
 }
 func (im *InMemory) Wrap(next Prices) *InMemory {
 	im.next = next
+	return im
+}
+func (im *InMemory) Warm(ctx context.Context, currencyList []string, rotationTimer time.Duration) *InMemory {
+	if len(currencyList) == 0 {
+		return im
+	}
+	go func() {
+		ticker := time.NewTicker(rotationTimer / time.Duration(len(currencyList)))
+		index := 0
+		for range ticker.C {
+			currentAssetValue, err := im.LoadPrices(ctx, currencyList[index])
+			if err != nil {
+				logger.Error(ctx, "WARM: failed to update %s: %s", currencyList[index], err)
+				continue
+			}
+			im.set(currencyList[index], currentAssetValue)
+			logger.Info(ctx, "WARM: updated price for %s", currencyList[index])
+			index++
+			if index >= len(currencyList) {
+				index = 0
+			}
+		}
+	}()
 	return im
 }
 func (im *InMemory) LoadPrices(ctx context.Context, key string) (*price.Asset, error) {
