@@ -82,7 +82,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 						Source:    val.Source,
 						Currency:  key,
 						TimeStamp: val.TimeStamp,
-						Price:     val.Value,
+						Price:     Decimal(val.Value),
 					}
 					if history != "" {
 						switch history {
@@ -102,7 +102,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 							for _, hv := range val.History {
 								priceRecord.History = append(priceRecord.History, &PriceHistoryRecord{
 									TimeStamp: hv.TimeStamp,
-									Price:     hv.Value,
+									Price:     Decimal(hv.Value),
 								})
 							}
 						}
@@ -134,7 +134,7 @@ func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPri
 		}
 		cursorValue := result[cursor]
 		if cursor == 0 || record.TimeStamp.Before(cursorValue.TimeStamp) {
-			cursorValue.Price = record.Value
+			cursorValue.Price = Decimal(record.Value)
 			if cursor != 0 {
 				continue
 			}
@@ -142,7 +142,7 @@ func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPri
 		for cursor < granularity-1 {
 			cursor++
 			cursorValue = result[cursor]
-			cursorValue.Price = record.Value
+			cursorValue.Price = Decimal(record.Value)
 			if record.TimeStamp.Before(cursorValue.TimeStamp) {
 				break
 			}
