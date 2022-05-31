@@ -19,6 +19,6 @@ type PriceHistoryRecord struct {
 
 type Decimal float64
 
-func (d *Decimal) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatFloat(float64(*d), 'f', -1, 64)), nil
+func (d Decimal) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatFloat(float64(d), 'f', -1, 64)), nil
 }
