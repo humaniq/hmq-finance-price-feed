@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"net/http"
 	"sort"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpext"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 const CtxSymbolKey = "symbol"
@@ -150,13 +150,13 @@ func buildHistoryChart(since time.Time, granularity int, records []svc.SymbolPri
 	for _, record := range records {
 		estimator = append(estimator, &PriceHistoryRecord{
 			TimeStamp: record.TimeStamp,
-			Price:     record.Value,
+			Price:     Decimal(record.Value),
 		})
 	}
 	sort.Slice(estimator, func(i, j int) bool {
 		return estimator[i].TimeStamp.Before(estimator[j].TimeStamp)
 	})
-	currentPrice := float64(0)
+	currentPrice := Decimal(0)
 	for _, e := range estimator {
 		logger.Info(context.Background(), "ESTIMATING: %+v", e)
 		if e.Price == 0 {
