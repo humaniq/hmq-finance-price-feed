@@ -41,7 +41,11 @@ func (im *InMemory) Warm(ctx context.Context, currencyList []string, rotationTim
 		ticker := time.NewTicker(rotationTimer / time.Duration(len(currencyList)))
 		index := 0
 		for range ticker.C {
-			currentAssetValue, err := im.LoadPrices(ctx, currencyList[index])
+			if im.next == nil {
+				logger.Error(ctx, "next is nil, no warm available")
+				continue
+			}
+			currentAssetValue, err := im.next.LoadPrices(ctx, currencyList[index])
 			if err != nil {
 				logger.Error(ctx, "WARM: failed to update %s: %s", currencyList[index], err)
 				continue
