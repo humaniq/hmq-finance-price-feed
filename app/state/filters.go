@@ -23,16 +23,40 @@ func CommitValueSymbolsFilterFunc(symbols map[string]bool) CommitValueFilterFunc
 		return false
 	}
 }
+func CommitValuePriceDiffOrTimestampDiffFilterFunc(diffs config.Diffs, ts config.TSDiffs) CommitValueFilterFunc {
+	valueDiffFunc := CommitValuePricePercentDiffFilterFinc(diffs)
+	tsForceFunc := CommitValuePriceForceTimeStampFilterFunc(ts)
+	return func(p0 *price.Value, p1 *price.Value) bool {
+		if valueDiffFunc(p0, p1) {
+			return true
+		}
+		if tsForceFunc(p0, p1) {
+			return true
+		}
+		return false
+	}
+}
+func CommitValuePriceForceTimeStampFilterFunc(ts config.TSDiffs) CommitValueFilterFunc {
+	return func(p0 *price.Value, p1 *price.Value) bool {
+		if p0 == nil {
+			return true
+		}
+		if p1.TimeStamp.Sub(p0.TimeStamp) > ts.Diff(p0.Symbol) {
+			return true
+		}
+		return false
+	}
+}
 func CommitValuePricePercentDiffFilterFinc(diffs config.Diffs) CommitValueFilterFunc {
 	return func(p0 *price.Value, p1 *price.Value) bool {
 		if p0 == nil {
 			return true
 		}
 		diffPercent := diffs.Diff(p1.Symbol)
-		if diffPercent >= 100 || diffPercent <= 0 {
+		if diffPercent >= 1000000 || diffPercent <= 0 {
 			return true
 		}
-		deltaDiff := p0.Price * float64(diffPercent) / 100
+		deltaDiff := p0.Price * float64(diffPercent) / 1000000
 		diff := p1.Price - p0.Price
 		if diff < 0 {
 			diff *= -1
@@ -43,7 +67,6 @@ func CommitValuePricePercentDiffFilterFinc(diffs config.Diffs) CommitValueFilter
 		return false
 	}
 }
-
 func CommitValueTimestampFilterFunc() CommitValueFilterFunc {
 	return func(p0 *price.Value, p1 *price.Value) bool {
 		if p0 == nil {

@@ -343,3 +343,9 @@ providers:
     currencies:
       usd: usd
       eur: eur
+diffs:
+  usdc: 100
+  usdt: 100
+force_update_seconds:
+  usdc: 14400
+  usdt: 14400
