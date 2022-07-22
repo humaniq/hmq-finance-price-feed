@@ -66,7 +66,7 @@ func main() {
 		}
 		pricesState[currency] = state.NewAssetCommitter(currencyState).WithFilters(
 			state.CommitValueCurrenciesFilterFunc(map[string]bool{currency: true}),
-			state.CommitValuePricePercentDiffFilterFinc(cfg.Diffs),
+			state.CommitValuePriceDiffOrTimestampDiffFilterFunc(cfg.Diffs, config.NewTSDiffsFromSeconds(cfg.ForceUpdateSeconds)),
 		)
 	}
 

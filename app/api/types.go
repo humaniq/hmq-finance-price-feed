@@ -2,6 +2,7 @@ package api
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -20,5 +21,6 @@ type PriceHistoryRecord struct {
 type Decimal float64
 
 func (d Decimal) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatFloat(float64(d), 'f', -1, 64)), nil
+	strVal := strings.TrimRight(strconv.FormatFloat(float64(d), 'f', 10, 64), "0")
+	return []byte(strings.TrimRight(strVal, ".")), nil
 }
