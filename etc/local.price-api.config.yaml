@@ -1,3 +1,6 @@
+api:
+  port: "8080"
+  openapi_path: "spec/prices.openapi.yaml"
 assets:
   - btc
   - eth
@@ -20,3 +23,7 @@ currencies:
   ugx: usd
   frw: usd
   krw: usd
+backend:
+  gcloud_datastore:
+    project_id: 'humaniq-168420'
+    price_assets_kind: 'hmq_price_assets|PRICE_ASSETS_KIND'
