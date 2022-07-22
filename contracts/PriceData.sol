@@ -2,7 +2,7 @@ pragma solidity ^0.6.10;
 
 contract PriceData {
 
-    event Written(string symbol, string currency, uint64 value);
+    event Written(address source, string symbol, string currency, uint64 value);
     event NotWritten(uint256 blockTimestamp, uint64 messageTimestamp, uint64 currentValueTimestamp);
 
     struct Record {
@@ -10,28 +10,36 @@ contract PriceData {
         uint64 value;
     }
 
-    mapping(string => mapping(string => Record)) private data;
+    mapping(address => mapping(string => mapping(string => Record))) private data;
 
 
     function putPrice(string memory symbol, string memory currency, uint64 value, uint64 timestamp) external {
-        Record storage current = data[symbol][currency];
+        address source = msg.sender;
+        Record storage current = data[source][symbol][currency];
         if (timestamp > current.timestamp && timestamp < block.timestamp + 60 minutes) {
-            data[symbol][currency] = Record(timestamp, value);
-            emit Written(symbol, currency, value);
+            data[source][symbol][currency] = Record(timestamp, value);
+            emit Written(source, symbol, currency, value);
         } else {
             emit NotWritten(block.timestamp, timestamp, current.timestamp);
         }
     }
-    function putEth(string memory symbol, uint64 value, uint64 timestamp) external {
+    function putEthPrice(string memory symbol, uint64 value, uint64 timestamp) external {
         this.putPrice(symbol, "ETH", value, timestamp);
     }
+    function putUsdPrice(string memory symbol, uint64 value, uint64 timestamp) external {
+        this.putPrice(symbol, "USD", value, timestamp);
+    }
 
-    function getPrice(string memory symbol, string memory currency) external view returns (uint64, uint64) {
-        Record storage value = data[symbol][currency];
+
+    function getPrice(address source, string memory symbol, string memory currency) external view returns (uint64, uint64) {
+        Record storage value = data[source][symbol][currency];
         return (value.value, value.timestamp);
     }
-    function getEth(string memory symbol) external view returns (uint64, uint64) {
-        Record storage value = data[symbol]["ETH"];
-        return (value.value, value.timestamp);
+    function getEthPrice(address source, string memory symbol) external view returns (uint64, uint64) {
+        return this.getPrice(source, symbol, "ETH");
     }
+    function getUsdPrice(address source, string memory symbol) external view returns (uint64, uint64) {
+        return this.getPrice(source, symbol, "USD");
+    }
+
 }

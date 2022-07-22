@@ -2,17 +2,25 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 
-	"github.com/humaniq/hmq-finance-price-feed/app/svc"
+	"github.com/humaniq/hmq-finance-price-feed/app"
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
+	"github.com/humaniq/hmq-finance-price-feed/app/feed"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/state"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
+
+const defaultProviderTickPeriod = time.Minute * 5
 
 func main() {
 
@@ -25,65 +33,106 @@ func main() {
 	}
 	ctx := context.Background()
 
-	priceCache, err := cache.NewLRU(1000)
+	configPath := os.Getenv("CONFIG_FILE_PATH")
+	if configPath == "" {
+		configPath = "/etc/hmq/price-feed.yaml"
+	}
+	cfg, err := config.FeedConfigFromFile(configPath)
 	if err != nil {
-		logger.Fatal(ctx, "priceCache init: %s", err)
+		logger.Fatal(ctx, "error getting config: %s", err)
 		return
 	}
-	backend := svc.NewPriceSvc().WithCache(priceCache)
-	logger.Info(ctx, "BACKEND INIT")
 
-	if dsProjectId := os.Getenv("DATASTORE_PROJECT_ID"); dsProjectId != "" {
-		ds, err := gds.NewClient(ctx, dsProjectId, "hmq_prices")
+	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
+	if dsKind == "" {
+		dsKind = "hmq_price_assets"
+	}
+	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
+	if err != nil {
+		logger.Fatal(ctx, "gdsClient init: %s", err)
+		return
+	}
+	backend := storage.NewPricesDSv2(gdsClient)
+
+	pricesState := make(map[string]*state.AssetCommitter)
+	for _, currency := range cfg.Assets {
+		currencyState, err := backend.LoadPrices(ctx, currency)
 		if err != nil {
-			logger.Fatal(ctx, "priceDS init: %s", err)
+			if !errors.Is(err, app.ErrNotFound) {
+				logger.Fatal(ctx, "prices state init: %s", err)
+				return
+			}
+			currencyState = price.NewAsset(currency)
+		}
+		pricesState[currency] = state.NewAssetCommitter(currencyState).WithFilters(
+			state.CommitValueCurrenciesFilterFunc(map[string]bool{currency: true}),
+			state.CommitValuePriceDiffOrTimestampDiffFilterFunc(cfg.Diffs, config.NewTSDiffsFromSeconds(cfg.ForceUpdateSeconds)),
+		)
+	}
+
+	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
+
+	if contractUrl := os.Getenv("CONTRACT_PRICES_URL"); contractUrl != "" {
+		chainIdString := os.Getenv("CONTRACT_CHAIN_ID")
+		chainId, err := strconv.ParseInt(chainIdString, 10, 64)
+		if err != nil {
+			chainId = 1337
+		}
+		contractBackend, err := storage.NewPricesContractSetter(
+			contractUrl,
+			chainId,
+			os.Getenv("CONTRACT_PRICES_ADDRESS"),
+			os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
+		)
+		if err != nil {
+			logger.Fatal(ctx, "err getting contract backend: %s", err)
 			return
 		}
-		backend = backend.WithGDSClient(ds)
-		logger.Info(ctx, "DS storage added")
+
+		ps := make(map[string]*state.AssetCommitter)
+		ps["usd"] = pricesState["usd"]
+		ps["eur"] = pricesState["eur"]
+
+		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, ps)
+		go contractConsumer.Run()
+		defer contractConsumer.WaitForDone()
+		dsConsumer = dsConsumer.WithNext(
+			contractConsumer,
+		)
 	}
 
-	chainId, err := strconv.Atoi(os.Getenv("CONTRACT_PRICES_CHAIN_ID"))
-	if err != nil {
-		logger.Fatal(ctx, "chainID fail: %s", err.Error())
-		return
+	go dsConsumer.Run()
+	defer dsConsumer.WaitForDone()
+
+	var wg sync.WaitGroup
+	wg.Add(len(cfg.Providers))
+	defer wg.Wait()
+
+	for _, provider := range cfg.Providers {
+		switch provider.Type {
+		case "coingecko":
+			logger.Info(ctx, "%+v", provider)
+			go func(providerConfig config.ProviderConfig) {
+				defer wg.Done()
+				defer dsConsumer.Release()
+				if err := feed.NewCoinGeckoProvider(defaultProviderTickPeriod, prices.NewCoinGecko(), providerConfig.Symbols, providerConfig.Currencies).
+					Provide(ctx, dsConsumer.Lease()); err != nil {
+					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
+				}
+			}(provider)
+		case "geocurrency":
+			go func(providerConfig config.ProviderConfig) {
+				defer wg.Done()
+				defer dsConsumer.Release()
+				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(defaultProviderTickPeriod, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), providerConfig.Symbols, providerConfig.Currencies)
+				if err := geoCurrencyProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
+					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
+				}
+			}(provider)
+		default:
+			logger.Fatal(ctx, "UNKNOWN PROVIDER: %s", provider.Type)
+			return
+		}
 	}
-
-	pricesContractConsumer, err := svc.NewContractPricesConsumer(
-		ctx,
-		os.Getenv("CONTRACT_PRICES_URL"),
-		os.Getenv("CONTRACT_PRICES_ADDRESS"),
-		os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
-		int64(chainId),
-	)
-	if err != nil {
-		logger.Fatal(ctx, "contract fail: %s", err.Error())
-		return
-	}
-	logger.Info(ctx, "PRICES CONTRACT")
-
-	messariTickerDuration := time.Minute * 5
-	if tickerSeconds, err := strconv.Atoi(os.Getenv("MESSARI_TICKER_SECONDS")); err == nil {
-		messariTickerDuration = time.Second * time.Duration(tickerSeconds)
-	}
-
-	messariTokenList := strings.Split(os.Getenv("MESSARI_TOKEN_LIST"), ",")
-	if len(messariTokenList) == 0 {
-		messariTokenList = []string{"ETH", "USDT", "BTC"}
-	}
-
-	messariPricesProvider := svc.NewMessariPriceProvider(messariTickerDuration, messariTokenList)
-
-	deltas := make(map[string]int)
-	deltas["ETH"] = 1
-
-	feed := svc.NewPriceFeedHandler(backend)
-	feed.AddFilterFunc(svc.FilterDeltaFunc(backend, deltas, time.Hour))
-	feed.Start()
-	defer feed.Stop()
-
-	go pricesContractConsumer.Consume(ctx, feed.GetConsumerChan())
-
-	messariPricesProvider.Provide(ctx, feed.In())
 
 }

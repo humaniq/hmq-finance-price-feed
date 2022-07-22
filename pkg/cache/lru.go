@@ -61,3 +61,7 @@ func (l *LRU) Set(ctx context.Context, key string, value interface{}, expiryPeri
 	_ = l.cache.Add(key, record)
 	return nil
 }
+func (l *LRU) Unset(ctx context.Context, key string) error {
+	l.cache.Remove(key)
+	return nil
+}

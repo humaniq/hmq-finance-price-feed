@@ -30,8 +30,8 @@ var (
 
 // PriceDataMetaData contains all meta data concerning the PriceData contract.
 var PriceDataMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"blockTimestamp\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"messageTimestamp\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"currentValueTimestamp\",\"type\":\"uint64\"}],\"name\":\"NotWritten\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"}],\"name\":\"Written\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"}],\"name\":\"getEth\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"}],\"name\":\"getPrice\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"}],\"name\":\"putEth\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"},{\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"}],\"name\":\"putPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x608060405234801561001057600080fd5b50610a6b806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80633d0f34da1461005157806347d4cc43146101a157806375615db51461024557806391b379b714610302575b600080fd5b61017a6004803603604081101561006757600080fd5b810190602081018135600160201b81111561008157600080fd5b82018360208201111561009357600080fd5b803590602001918460018302840111600160201b831117156100b457600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295949360208101935035915050600160201b81111561010657600080fd5b82018360208201111561011857600080fd5b803590602001918460018302840111600160201b8311171561013957600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550610442945050505050565b6040805167ffffffffffffffff938416815291909216602082015281519081900390910190f35b61017a600480360360208110156101b757600080fd5b810190602081018135600160201b8111156101d157600080fd5b8201836020820111156101e357600080fd5b803590602001918460018302840111600160201b8311171561020457600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550610521945050505050565b6103006004803603606081101561025b57600080fd5b810190602081018135600160201b81111561027557600080fd5b82018360208201111561028757600080fd5b803590602001918460018302840111600160201b831117156102a857600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295505067ffffffffffffffff83358116945060209093013590921691506105bf9050565b005b6103006004803603608081101561031857600080fd5b810190602081018135600160201b81111561033257600080fd5b82018360208201111561034457600080fd5b803590602001918460018302840111600160201b8311171561036557600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295949360208101935035915050600160201b8111156103b757600080fd5b8201836020820111156103c957600080fd5b803590602001918460018302840111600160201b831117156103ea57600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295505067ffffffffffffffff83358116945060209093013590921691506106bb9050565b600080600080856040518082805190602001908083835b602083106104785780518252601f199092019160209182019101610459565b51815160209384036101000a6000190180199092169116179052920194855250604051938490038101842088519094899450925082918401908083835b602083106104d45780518252601f1990920191602091820191016104b5565b51815160209384036101000a6000190180199092169116179052920194855250604051938490030190922054600160401b810467ffffffffffffffff908116999116975095505050505050565b600080600080846040518082805190602001908083835b602083106105575780518252601f199092019160209182019101610538565b51815160001960209485036101000a01908116901991909116179052920194855250604080519485900390910184206208aa8960eb1b8552600385015251928390036023019092205467ffffffffffffffff600160401b820481169650169350505050915091565b6040516391b379b760e01b815267ffffffffffffffff80841660448301528216606482015260806004820190815284516084830152845130926391b379b792879287928792918291602481019160a490910190602088019080838360005b8381101561063557818101518382015260200161061d565b50505050905090810190601f1680156106625780820380516001836020036101000a031916815260200191505b50838103825260038152602001806208aa8960eb1b81525060200195505050505050600060405180830381600087803b15801561069e57600080fd5b505af11580156106b2573d6000803e3d6000fd5b50505050505050565b600080856040518082805190602001908083835b602083106106ee5780518252601f1990920191602091820191016106cf565b51815160209384036101000a6000190180199092169116179052920194855250604051938490038101842088519094899450925082918401908083835b6020831061074a5780518252601f19909201916020918201910161072b565b51815160209384036101000a60001901801990921691161790529201948552506040519384900301909220805490935067ffffffffffffffff9081169085161191505080156107a25750428267ffffffffffffffff16105b156109e15760405180604001604052808367ffffffffffffffff1681526020018467ffffffffffffffff168152506000866040518082805190602001908083835b602083106108025780518252601f1990920191602091820191016107e3565b51815160209384036101000a60001901801990921691161790529201948552506040519384900381018420895190948a9450925082918401908083835b6020831061085e5780518252601f19909201916020918201910161083f565b51815160209384036101000a6000190180199092169116179052920194855250604080519485900382018520865181549784015167ffffffffffffffff1990981667ffffffffffffffff918216176fffffffffffffffff00000000000000001916600160401b98821698909802979097179055948816948401949094525050606080825287519082015286517f8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd9288928892889282918282019160808401919088019080838360005b8381101561093f578181015183820152602001610927565b50505050905090810190601f16801561096c5780820380516001836020036101000a031916815260200191505b50838103825285518152855160209182019187019080838360005b8381101561099f578181015183820152602001610987565b50505050905090810190601f1680156109cc5780820380516001836020036101000a031916815260200191505b509550505050505060405180910390a1610a2e565b80546040805142815267ffffffffffffffff808616602083015290921682820152517ff628b78179ba89052d9db1e70e518a5c9d1b5b1b8c8518171f66004e32edd9ce9181900360600190a15b505050505056fea26469706673582212208331addd276e68df5cd5896b7977afab41a4152a4ba0e4bfff6b35f1852ac14f64736f6c634300060a0033",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"blockTimestamp\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"messageTimestamp\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"currentValueTimestamp\",\"type\":\"uint64\"}],\"name\":\"NotWritten\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"source\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"}],\"name\":\"Written\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"source\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"}],\"name\":\"getEthPrice\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"source\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"}],\"name\":\"getPrice\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"source\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"}],\"name\":\"getUsdPrice\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"}],\"name\":\"putEthPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"currency\",\"type\":\"string\"},{\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"}],\"name\":\"putPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint64\",\"name\":\"value\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"timestamp\",\"type\":\"uint64\"}],\"name\":\"putUsdPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b50610e93806100206000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c80630ee43f071461006757806326c392cd1461012357806374e2c132146101fd578063910205f81461033657806391b379b7146103ea57806398f9e57c14610529575b600080fd5b6101216004803603606081101561007d57600080fd5b810190602081018135600160201b81111561009757600080fd5b8201836020820111156100a957600080fd5b803590602001918460018302840111600160201b831117156100ca57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550506001600160401b0383358116945060209093013590921691506105e39050565b005b6101d76004803603604081101561013957600080fd5b6001600160a01b038235169190810190604081016020820135600160201b81111561016357600080fd5b82018360208201111561017557600080fd5b803590602001918460018302840111600160201b8311171561019657600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295506106de945050505050565b604080516001600160401b03938416815291909216602082015281519081900390910190f35b6101d76004803603606081101561021357600080fd5b6001600160a01b038235169190810190604081016020820135600160201b81111561023d57600080fd5b82018360208201111561024f57600080fd5b803590602001918460018302840111600160201b8311171561027057600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295949360208101935035915050600160201b8111156102c257600080fd5b8201836020820111156102d457600080fd5b803590602001918460018302840111600160201b831117156102f557600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295506107ef945050505050565b6101d76004803603604081101561034c57600080fd5b6001600160a01b038235169190810190604081016020820135600160201b81111561037657600080fd5b82018360208201111561038857600080fd5b803590602001918460018302840111600160201b831117156103a957600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295506108f1945050505050565b6101216004803603608081101561040057600080fd5b810190602081018135600160201b81111561041a57600080fd5b82018360208201111561042c57600080fd5b803590602001918460018302840111600160201b8311171561044d57600080fd5b91908080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509295949360208101935035915050600160201b81111561049f57600080fd5b8201836020820111156104b157600080fd5b803590602001918460018302840111600160201b831117156104d257600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550506001600160401b0383358116945060209093013590921691506109c49050565b6101216004803603606081101561053f57600080fd5b810190602081018135600160201b81111561055957600080fd5b82018360208201111561056b57600080fd5b803590602001918460018302840111600160201b8311171561058c57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550506001600160401b038335811694506020909301359092169150610d7f9050565b6040516391b379b760e01b81526001600160401b0380841660448301528216606482015260806004820190815284516084830152845130926391b379b792879287928792918291602481019160a490910190602088019080838360005b83811015610658578181015183820152602001610640565b50505050905090810190601f1680156106855780820380516001836020036101000a031916815260200191505b50838103825260038152602001806208aa8960eb1b81525060200195505050505050600060405180830381600087803b1580156106c157600080fd5b505af11580156106d5573d6000803e3d6000fd5b50505050505050565b604051633a71609960e11b81526001600160a01b03831660048201908152606060248301908152835160648401528351600093849330936374e2c1329389938993929160448201916084019060208601908083838d5b8381101561074c578181015183820152602001610734565b50505050905090810190601f1680156107795780820380516001836020036101000a031916815260200191505b50838103825260038152602001806208aa8960eb1b815250602001945050505050604080518083038186803b1580156107b157600080fd5b505afa1580156107c5573d6000803e3d6000fd5b505050506040513d60408110156107db57600080fd5b508051602090910151909590945092505050565b6000806000806000876001600160a01b03166001600160a01b03168152602001908152602001600020856040518082805190602001908083835b602083106108485780518252601f199092019160209182019101610829565b51815160209384036101000a6000190180199092169116179052920194855250604051938490038101842088519094899450925082918401908083835b602083106108a45780518252601f199092019160209182019101610885565b51815160209384036101000a6000190180199092169116179052920194855250604051938490030190922054600160401b81046001600160401b039081169a911698509650505050505050565b604051633a71609960e11b81526001600160a01b03831660048201908152606060248301908152835160648401528351600093849330936374e2c1329389938993929160448201916084019060208601908083838d5b8381101561095f578181015183820152602001610947565b50505050905090810190601f16801561098c5780820380516001836020036101000a031916815260200191505b5083810382526003815260200180621554d160ea1b815250602001945050505050604080518083038186803b1580156107b157600080fd5b33600081815260208181526040808320905188519192899282918401908083835b60208310610a045780518252601f1990920191602091820191016109e5565b51815160209384036101000a60001901801990921691161790529201948552506040519384900381018420895190948a9450925082918401908083835b60208310610a605780518252601f199092019160209182019101610a41565b51815160209384036101000a6000190180199092169116179052920194855250604051938490030190922080549093506001600160401b03908116908616119150508015610aba575042610e1001836001600160401b0316105b15610d2b576040518060400160405280846001600160401b03168152602001856001600160401b0316815250600080846001600160a01b03166001600160a01b03168152602001908152602001600020876040518082805190602001908083835b60208310610b3a5780518252601f199092019160209182019101610b1b565b51815160209384036101000a600019018019909216911617905292019485525060405193849003810184208a5190948b9450925082918401908083835b60208310610b965780518252601f199092019160209182019101610b77565b51815160209384036101000a6000190180199092169116179052920194855250604080519485900382018520865181549784015167ffffffffffffffff199098166001600160401b03918216176fffffffffffffffff00000000000000001916600160401b988216989098029790971790556001600160a01b0388168552948916606085015260808482018181528c51918601919091528b517f40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b9689968e96508d95508c949093929184019160a085019188019080838360005b83811015610c88578181015183820152602001610c70565b50505050905090810190601f168015610cb55780820380516001836020036101000a031916815260200191505b50838103825285518152855160209182019187019080838360005b83811015610ce8578181015183820152602001610cd0565b50505050905090810190601f168015610d155780820380516001836020036101000a031916815260200191505b50965050505050505060405180910390a1610d77565b8054604080514281526001600160401b03808716602083015290921682820152517ff628b78179ba89052d9db1e70e518a5c9d1b5b1b8c8518171f66004e32edd9ce9181900360600190a15b505050505050565b6040516391b379b760e01b81526001600160401b0380841660448301528216606482015260806004820190815284516084830152845130926391b379b792879287928792918291602481019160a490910190602088019080838360005b83811015610df4578181015183820152602001610ddc565b50505050905090810190601f168015610e215780820380516001836020036101000a031916815260200191505b5083810382526003815260200180621554d160ea1b81525060200195505050505050600060405180830381600087803b1580156106c157600080fdfea2646970667358221220b7be1c43ff2f286025adaffcbe6a18a69e99932e806da3f453e404450ebd70c164736f6c634300060a0033",
 }
 
 // PriceDataABI is the input ABI used to generate the binding from.
@@ -201,12 +201,12 @@ func (_PriceData *PriceDataTransactorRaw) Transact(opts *bind.TransactOpts, meth
 	return _PriceData.Contract.contract.Transact(opts, method, params...)
 }
 
-// GetEth is a free data retrieval call binding the contract method 0x47d4cc43.
+// GetEthPrice is a free data retrieval call binding the contract method 0x26c392cd.
 //
-// Solidity: function getEth(string symbol) view returns(uint64, uint64)
-func (_PriceData *PriceDataCaller) GetEth(opts *bind.CallOpts, symbol string) (uint64, uint64, error) {
+// Solidity: function getEthPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataCaller) GetEthPrice(opts *bind.CallOpts, source common.Address, symbol string) (uint64, uint64, error) {
 	var out []interface{}
-	err := _PriceData.contract.Call(opts, &out, "getEth", symbol)
+	err := _PriceData.contract.Call(opts, &out, "getEthPrice", source, symbol)
 
 	if err != nil {
 		return *new(uint64), *new(uint64), err
@@ -219,26 +219,26 @@ func (_PriceData *PriceDataCaller) GetEth(opts *bind.CallOpts, symbol string) (u
 
 }
 
-// GetEth is a free data retrieval call binding the contract method 0x47d4cc43.
+// GetEthPrice is a free data retrieval call binding the contract method 0x26c392cd.
 //
-// Solidity: function getEth(string symbol) view returns(uint64, uint64)
-func (_PriceData *PriceDataSession) GetEth(symbol string) (uint64, uint64, error) {
-	return _PriceData.Contract.GetEth(&_PriceData.CallOpts, symbol)
+// Solidity: function getEthPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataSession) GetEthPrice(source common.Address, symbol string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetEthPrice(&_PriceData.CallOpts, source, symbol)
 }
 
-// GetEth is a free data retrieval call binding the contract method 0x47d4cc43.
+// GetEthPrice is a free data retrieval call binding the contract method 0x26c392cd.
 //
-// Solidity: function getEth(string symbol) view returns(uint64, uint64)
-func (_PriceData *PriceDataCallerSession) GetEth(symbol string) (uint64, uint64, error) {
-	return _PriceData.Contract.GetEth(&_PriceData.CallOpts, symbol)
+// Solidity: function getEthPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataCallerSession) GetEthPrice(source common.Address, symbol string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetEthPrice(&_PriceData.CallOpts, source, symbol)
 }
 
-// GetPrice is a free data retrieval call binding the contract method 0x3d0f34da.
+// GetPrice is a free data retrieval call binding the contract method 0x74e2c132.
 //
-// Solidity: function getPrice(string symbol, string currency) view returns(uint64, uint64)
-func (_PriceData *PriceDataCaller) GetPrice(opts *bind.CallOpts, symbol string, currency string) (uint64, uint64, error) {
+// Solidity: function getPrice(address source, string symbol, string currency) view returns(uint64, uint64)
+func (_PriceData *PriceDataCaller) GetPrice(opts *bind.CallOpts, source common.Address, symbol string, currency string) (uint64, uint64, error) {
 	var out []interface{}
-	err := _PriceData.contract.Call(opts, &out, "getPrice", symbol, currency)
+	err := _PriceData.contract.Call(opts, &out, "getPrice", source, symbol, currency)
 
 	if err != nil {
 		return *new(uint64), *new(uint64), err
@@ -251,39 +251,71 @@ func (_PriceData *PriceDataCaller) GetPrice(opts *bind.CallOpts, symbol string, 
 
 }
 
-// GetPrice is a free data retrieval call binding the contract method 0x3d0f34da.
+// GetPrice is a free data retrieval call binding the contract method 0x74e2c132.
 //
-// Solidity: function getPrice(string symbol, string currency) view returns(uint64, uint64)
-func (_PriceData *PriceDataSession) GetPrice(symbol string, currency string) (uint64, uint64, error) {
-	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, symbol, currency)
+// Solidity: function getPrice(address source, string symbol, string currency) view returns(uint64, uint64)
+func (_PriceData *PriceDataSession) GetPrice(source common.Address, symbol string, currency string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, source, symbol, currency)
 }
 
-// GetPrice is a free data retrieval call binding the contract method 0x3d0f34da.
+// GetPrice is a free data retrieval call binding the contract method 0x74e2c132.
 //
-// Solidity: function getPrice(string symbol, string currency) view returns(uint64, uint64)
-func (_PriceData *PriceDataCallerSession) GetPrice(symbol string, currency string) (uint64, uint64, error) {
-	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, symbol, currency)
+// Solidity: function getPrice(address source, string symbol, string currency) view returns(uint64, uint64)
+func (_PriceData *PriceDataCallerSession) GetPrice(source common.Address, symbol string, currency string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, source, symbol, currency)
 }
 
-// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+// GetUsdPrice is a free data retrieval call binding the contract method 0x910205f8.
 //
-// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
-func (_PriceData *PriceDataTransactor) PutEth(opts *bind.TransactOpts, symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
-	return _PriceData.contract.Transact(opts, "putEth", symbol, value, timestamp)
+// Solidity: function getUsdPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataCaller) GetUsdPrice(opts *bind.CallOpts, source common.Address, symbol string) (uint64, uint64, error) {
+	var out []interface{}
+	err := _PriceData.contract.Call(opts, &out, "getUsdPrice", source, symbol)
+
+	if err != nil {
+		return *new(uint64), *new(uint64), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint64)).(*uint64)
+	out1 := *abi.ConvertType(out[1], new(uint64)).(*uint64)
+
+	return out0, out1, err
+
 }
 
-// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+// GetUsdPrice is a free data retrieval call binding the contract method 0x910205f8.
 //
-// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
-func (_PriceData *PriceDataSession) PutEth(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
-	return _PriceData.Contract.PutEth(&_PriceData.TransactOpts, symbol, value, timestamp)
+// Solidity: function getUsdPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataSession) GetUsdPrice(source common.Address, symbol string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetUsdPrice(&_PriceData.CallOpts, source, symbol)
 }
 
-// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+// GetUsdPrice is a free data retrieval call binding the contract method 0x910205f8.
 //
-// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
-func (_PriceData *PriceDataTransactorSession) PutEth(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
-	return _PriceData.Contract.PutEth(&_PriceData.TransactOpts, symbol, value, timestamp)
+// Solidity: function getUsdPrice(address source, string symbol) view returns(uint64, uint64)
+func (_PriceData *PriceDataCallerSession) GetUsdPrice(source common.Address, symbol string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetUsdPrice(&_PriceData.CallOpts, source, symbol)
+}
+
+// PutEthPrice is a paid mutator transaction binding the contract method 0x0ee43f07.
+//
+// Solidity: function putEthPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactor) PutEthPrice(opts *bind.TransactOpts, symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.contract.Transact(opts, "putEthPrice", symbol, value, timestamp)
+}
+
+// PutEthPrice is a paid mutator transaction binding the contract method 0x0ee43f07.
+//
+// Solidity: function putEthPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataSession) PutEthPrice(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutEthPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
+}
+
+// PutEthPrice is a paid mutator transaction binding the contract method 0x0ee43f07.
+//
+// Solidity: function putEthPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactorSession) PutEthPrice(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutEthPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
 }
 
 // PutPrice is a paid mutator transaction binding the contract method 0x91b379b7.
@@ -305,6 +337,27 @@ func (_PriceData *PriceDataSession) PutPrice(symbol string, currency string, val
 // Solidity: function putPrice(string symbol, string currency, uint64 value, uint64 timestamp) returns()
 func (_PriceData *PriceDataTransactorSession) PutPrice(symbol string, currency string, value uint64, timestamp uint64) (*types.Transaction, error) {
 	return _PriceData.Contract.PutPrice(&_PriceData.TransactOpts, symbol, currency, value, timestamp)
+}
+
+// PutUsdPrice is a paid mutator transaction binding the contract method 0x98f9e57c.
+//
+// Solidity: function putUsdPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactor) PutUsdPrice(opts *bind.TransactOpts, symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.contract.Transact(opts, "putUsdPrice", symbol, value, timestamp)
+}
+
+// PutUsdPrice is a paid mutator transaction binding the contract method 0x98f9e57c.
+//
+// Solidity: function putUsdPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataSession) PutUsdPrice(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutUsdPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
+}
+
+// PutUsdPrice is a paid mutator transaction binding the contract method 0x98f9e57c.
+//
+// Solidity: function putUsdPrice(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactorSession) PutUsdPrice(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutUsdPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
 }
 
 // PriceDataNotWrittenIterator is returned from FilterNotWritten and is used to iterate over the raw logs and unpacked data for NotWritten events raised by the PriceData contract.
@@ -512,15 +565,16 @@ func (it *PriceDataWrittenIterator) Close() error {
 
 // PriceDataWritten represents a Written event raised by the PriceData contract.
 type PriceDataWritten struct {
+	Source   common.Address
 	Symbol   string
 	Currency string
 	Value    uint64
 	Raw      types.Log // Blockchain specific contextual infos
 }
 
-// FilterWritten is a free log retrieval operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+// FilterWritten is a free log retrieval operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
-// Solidity: event Written(string symbol, string currency, uint64 value)
+// Solidity: event Written(address source, string symbol, string currency, uint64 value)
 func (_PriceData *PriceDataFilterer) FilterWritten(opts *bind.FilterOpts) (*PriceDataWrittenIterator, error) {
 
 	logs, sub, err := _PriceData.contract.FilterLogs(opts, "Written")
@@ -530,9 +584,9 @@ func (_PriceData *PriceDataFilterer) FilterWritten(opts *bind.FilterOpts) (*Pric
 	return &PriceDataWrittenIterator{contract: _PriceData.contract, event: "Written", logs: logs, sub: sub}, nil
 }
 
-// WatchWritten is a free log subscription operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+// WatchWritten is a free log subscription operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
-// Solidity: event Written(string symbol, string currency, uint64 value)
+// Solidity: event Written(address source, string symbol, string currency, uint64 value)
 func (_PriceData *PriceDataFilterer) WatchWritten(opts *bind.WatchOpts, sink chan<- *PriceDataWritten) (event.Subscription, error) {
 
 	logs, sub, err := _PriceData.contract.WatchLogs(opts, "Written")
@@ -567,9 +621,9 @@ func (_PriceData *PriceDataFilterer) WatchWritten(opts *bind.WatchOpts, sink cha
 	}), nil
 }
 
-// ParseWritten is a log parse operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+// ParseWritten is a log parse operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
-// Solidity: event Written(string symbol, string currency, uint64 value)
+// Solidity: event Written(address source, string symbol, string currency, uint64 value)
 func (_PriceData *PriceDataFilterer) ParseWritten(log types.Log) (*PriceDataWritten, error) {
 	event := new(PriceDataWritten)
 	if err := _PriceData.contract.UnpackLog(event, "Written", log); err != nil {

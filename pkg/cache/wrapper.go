@@ -15,4 +15,5 @@ var ErrWriting = errors.New("error writing")
 type Wrapper interface {
 	Set(ctx context.Context, key string, value interface{}, expiryPeriod time.Duration) error
 	Get(ctx context.Context, key string, value interface{}) error
+	Unset(ctx context.Context, key string) error
 }
