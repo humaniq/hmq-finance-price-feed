@@ -316,6 +316,41 @@ func (_PriceData *PriceDataSession) PutEthPrice(symbol string, value uint64, tim
 // Solidity: function putEthPrice(string symbol, uint64 value, uint64 timestamp) returns()
 func (_PriceData *PriceDataTransactorSession) PutEthPrice(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
 	return _PriceData.Contract.PutEthPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
+=======
+// GetPrice is a free data retrieval call binding the contract method 0x3d0f34da.
+//
+// Solidity: function getPrice(string symbol, string currency) view returns(uint64, uint64)
+func (_PriceData *PriceDataSession) GetPrice(symbol string, currency string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, symbol, currency)
+}
+
+// GetPrice is a free data retrieval call binding the contract method 0x3d0f34da.
+//
+// Solidity: function getPrice(string symbol, string currency) view returns(uint64, uint64)
+func (_PriceData *PriceDataCallerSession) GetPrice(symbol string, currency string) (uint64, uint64, error) {
+	return _PriceData.Contract.GetPrice(&_PriceData.CallOpts, symbol, currency)
+}
+
+// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+//
+// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactor) PutEth(opts *bind.TransactOpts, symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.contract.Transact(opts, "putEth", symbol, value, timestamp)
+}
+
+// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+//
+// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataSession) PutEth(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutEth(&_PriceData.TransactOpts, symbol, value, timestamp)
+}
+
+// PutEth is a paid mutator transaction binding the contract method 0x75615db5.
+//
+// Solidity: function putEth(string symbol, uint64 value, uint64 timestamp) returns()
+func (_PriceData *PriceDataTransactorSession) PutEth(symbol string, value uint64, timestamp uint64) (*types.Transaction, error) {
+	return _PriceData.Contract.PutEth(&_PriceData.TransactOpts, symbol, value, timestamp)
+>>>>>>> master
 }
 
 // PutPrice is a paid mutator transaction binding the contract method 0x91b379b7.
@@ -339,6 +374,7 @@ func (_PriceData *PriceDataTransactorSession) PutPrice(symbol string, currency s
 	return _PriceData.Contract.PutPrice(&_PriceData.TransactOpts, symbol, currency, value, timestamp)
 }
 
+<<<<<<< HEAD
 // PutUsdPrice is a paid mutator transaction binding the contract method 0x98f9e57c.
 //
 // Solidity: function putUsdPrice(string symbol, uint64 value, uint64 timestamp) returns()
@@ -360,6 +396,8 @@ func (_PriceData *PriceDataTransactorSession) PutUsdPrice(symbol string, value u
 	return _PriceData.Contract.PutUsdPrice(&_PriceData.TransactOpts, symbol, value, timestamp)
 }
 
+=======
+>>>>>>> master
 // PriceDataNotWrittenIterator is returned from FilterNotWritten and is used to iterate over the raw logs and unpacked data for NotWritten events raised by the PriceData contract.
 type PriceDataNotWrittenIterator struct {
 	Event *PriceDataNotWritten // Event containing the contract specifics and raw log
@@ -565,16 +603,25 @@ func (it *PriceDataWrittenIterator) Close() error {
 
 // PriceDataWritten represents a Written event raised by the PriceData contract.
 type PriceDataWritten struct {
+<<<<<<< HEAD
 	Source   common.Address
+=======
+>>>>>>> master
 	Symbol   string
 	Currency string
 	Value    uint64
 	Raw      types.Log // Blockchain specific contextual infos
 }
 
+<<<<<<< HEAD
 // FilterWritten is a free log retrieval operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
 // Solidity: event Written(address source, string symbol, string currency, uint64 value)
+=======
+// FilterWritten is a free log retrieval operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+//
+// Solidity: event Written(string symbol, string currency, uint64 value)
+>>>>>>> master
 func (_PriceData *PriceDataFilterer) FilterWritten(opts *bind.FilterOpts) (*PriceDataWrittenIterator, error) {
 
 	logs, sub, err := _PriceData.contract.FilterLogs(opts, "Written")
@@ -584,9 +631,15 @@ func (_PriceData *PriceDataFilterer) FilterWritten(opts *bind.FilterOpts) (*Pric
 	return &PriceDataWrittenIterator{contract: _PriceData.contract, event: "Written", logs: logs, sub: sub}, nil
 }
 
+<<<<<<< HEAD
 // WatchWritten is a free log subscription operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
 // Solidity: event Written(address source, string symbol, string currency, uint64 value)
+=======
+// WatchWritten is a free log subscription operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+//
+// Solidity: event Written(string symbol, string currency, uint64 value)
+>>>>>>> master
 func (_PriceData *PriceDataFilterer) WatchWritten(opts *bind.WatchOpts, sink chan<- *PriceDataWritten) (event.Subscription, error) {
 
 	logs, sub, err := _PriceData.contract.WatchLogs(opts, "Written")
@@ -621,9 +674,15 @@ func (_PriceData *PriceDataFilterer) WatchWritten(opts *bind.WatchOpts, sink cha
 	}), nil
 }
 
+<<<<<<< HEAD
 // ParseWritten is a log parse operation binding the contract event 0x40fdb7e2c3f823a0cca05713ae49536eeeb7947f6dad6e70fc01df86cb5fde4b.
 //
 // Solidity: event Written(address source, string symbol, string currency, uint64 value)
+=======
+// ParseWritten is a log parse operation binding the contract event 0x8ebbee21ac37f8d356bad48541fda45f095a69124012792b20e903b0d8a669dd.
+//
+// Solidity: event Written(string symbol, string currency, uint64 value)
+>>>>>>> master
 func (_PriceData *PriceDataFilterer) ParseWritten(log types.Log) (*PriceDataWritten, error) {
 	event := new(PriceDataWritten)
 	if err := _PriceData.contract.UnpackLog(event, "Written", log); err != nil {

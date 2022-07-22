@@ -35,11 +35,65 @@ components:
           type: string
 paths:
   /prices/list:
+  /price/{symbol}:
     get:
       tags:
         - prices
       parameters:
         - name: symbol
+          in: path
+          required: true
+        - name: currency
+          in: query
+          required: false
+          default: 'ETH'
+      responses:
+        200:
+          description: price value for symbol given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceRecord'
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        404:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        500:
+          description: internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /prices:
+    get:
+      tags:
+        - prices
+      parameters:
+        - name: payload
+          in: body
+          required: false
+          description: list of symbols needed
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        200:
+          description: price values for symbol given
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceRecord'
           in: query
           required: false
           description: comma-separated list of symbols needed
