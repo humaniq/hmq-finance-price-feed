@@ -18,9 +18,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/app/svc"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"github.com/humaniq/hmq-finance-price-feed/app/svc"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/cache"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
@@ -85,18 +82,6 @@ func main() {
 				r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToLower, ",", []string{"eth", "usd", "eur", "rub"}))
 				r.Get("/prices/list", api.GetPricesFunc(svc.NewPrices(backend).WithMapping(cfg.Currencies)))
 			})
-				r.Group(func(r chi.Router) {
-					r.Use(
-						httpapi.MustHaveStringValueInPathCtxMiddleware("symbol", api.CtxSymbolKey, httpapi.CaseToUpper),
-						httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper),
-					)
-					r.Get("/price/{symbol}", api.GetPriceForSymbolHandlerFunc(backend))
-				})
-				r.Group(func(r chi.Router) {
-					r.Use(httpapi.MayHaveStringValueInQueryCtxMiddleware("currency", api.CtxCurrencyKey, httpapi.CaseToUpper))
-					r.Get("/prices", api.GetPricesForListFunc(backend))
-				})
-			}
 		})
 	})
 
