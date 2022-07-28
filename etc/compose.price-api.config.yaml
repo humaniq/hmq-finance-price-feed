@@ -1,6 +1,6 @@
 api:
   port: "8080"
-  openapi_path: "spec/prices.openapi.yaml"
+  openapi_path: "/usr/local/share/prices.openapi.yaml"
   base_url: "http://localhost:9002"
 assets:
   - btc
@@ -27,4 +27,4 @@ currencies:
 backend:
   gcloud_datastore:
     project_id: "humaniq-168420"
-    price_assets_kind: "testing_price_assets"
+    price_assets_kind: "develop_price_assets"

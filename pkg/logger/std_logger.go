@@ -17,7 +17,7 @@ type StdLogger struct {
 func NewStdLogger(level uint8) *StdLogger {
 	handlerOut := blogger.LevelPrefix(
 		blogger.CurrentTimeFormat("(2006-01-02)(15:04:05)")(
-			blogger.CtxStringValues("uid", "wallet")(
+			blogger.CtxStringValues("requestUid", "uid", "wallet")(
 				blogger.IOWriter(os.Stdout, true),
 			),
 		),

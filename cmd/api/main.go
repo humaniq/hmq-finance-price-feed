@@ -37,13 +37,15 @@ func main() {
 
 	configPath := os.Getenv("CONFIG_FILE_PATH")
 	if configPath == "" {
-		configPath = "/etc/hmq/local.price-api.config.yaml"
+		configPath = "/etc/hmq/price-api.config.yaml"
 	}
 	cfg, err := config.ApiConfigFromFile(configPath)
 	if err != nil {
 		logger.Fatal(ctx, "error getting config: %s", err)
 		return
 	}
+
+	logger.Info(ctx, "STARTING WITH: %+v", cfg)
 
 	gdsClient, err := gds.NewClient(ctx, cfg.Backend.GoogleDataStore.ProjectID(), cfg.Backend.GoogleDataStore.PriceAssetsKind())
 	if err != nil {
@@ -55,6 +57,7 @@ func main() {
 	backend := storage.NewInMemory(time.Minute*10).Wrap(dsBackend).Warm(context.Background(), cfg.Assets, time.Minute*9)
 
 	router := chi.NewRouter()
+	router.Use(httpapi.RequestUidMiddleware(httpapi.CtxRequestUidKey))
 	router.Group(func(r chi.Router) {
 		r.Use(
 			chim.Logger,

@@ -21,5 +21,5 @@ func (gds *GoogleDataStore) PriceAssetsKind() string {
 
 func overrideGDSFromEnv(gds *GoogleDataStore) {
 	gds.ProjectIdString = application.StringsValueEnvOverride(gds.ProjectIdString, "DATASTORE_PROJECT_ID")
-	gds.PriceAssetsRecordKindString = application.StringsValueEnvOverride(gds.PriceAssetsRecordKindString, "DATASTORE_HUMANOID_KIND")
+	gds.PriceAssetsRecordKindString = application.StringsValueEnvOverride(gds.PriceAssetsRecordKindString, "DATASTORE_PRICE_ASSETS_KIND")
 }

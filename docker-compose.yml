@@ -7,34 +7,32 @@ services:
     build:
       context: ./
       dockerfile: docker/price.api.dockerfile
-    image: "hmq.price.api:${IMAGE_TAG:-develop}"
+    image: "hmq.price.api:${IMAGE_TAG:-compose}"
     environment:
       - "ENVIRONMENT=${ENVIRONMENT:-compose}"
-      - "LOG_LEVEL=${LOG_LEVEL:-DEBUG}"
-      - "CONFIG_PATH=${CONFIG_PATH:-}"
+      - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
+      - "CONFIG_PATH=${CONFIG_PATH:-/etc/hmq/compose.price-api.yaml}"
       - "LISTEN=${LISTEN:-}"
       - "PORT=${PORT:-8080}"
       - "OPENAPI_PATH=${OPENAPI_PATH:-/usr/local/share/prices.openapi.yaml}"
       - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
-      - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-humaniq-168420}"
-#      - "DATASTORE_HUMANOID_KIND=${DATASTORE_HUMANOID_KIND:-}"
-#      - "PERMANENT_TOKEN=${PREMANENT_TOKEN:-XMaLhU75ZFklvAiV7yBZBNnlWsE9IowU}"
-#      - "BASE_URL=${BASE_URL:-https://signupbot.humaniq.com}"
-#      - "POSTGRES_USER=${POSTGRES_USER:-postgre}"
-#      - "POSTGRES_PASS=${POSTGRES_PASS:-}"
+      - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
+      - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
+      - "PERMANENT_TOKEN=${PERMANENT_TOKEN:-}"
+      - "BASE_URL=${BASE_URL:-}"
     ports:
       - "${PUBLIC_PORT:-8080}:${PORT:-8080}"
     networks:
       app:
         ipv4_address: ${NETWORK_PREFIX:-173.200.201}.10
         aliases:
-          - humanoid-backend.${APP_NAME:-app}.compose
+          - price-api.${APP_NAME:-app}.compose
     volumes:
       - ./.local/secret:/secret
-      - ./etc:/config
+      - ./etc:/etc/hmq
 
 networks:
   app:
     ipam:
       config:
-        - subnet: "${NETWORK_PREFIX:-173.200.201}.0/24"
+        - subnet: "${NETWORK_PREFIX:-173.200.202}.0/24"

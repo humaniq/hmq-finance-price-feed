@@ -32,7 +32,7 @@ func main() {
 	}
 	backend := storage.NewPricesDSv2(gdsClient)
 
-	currency := "usd"
+	currency := "jpy"
 
 	cgSymbols := make(map[string]string)
 	for _, v := range cfg.Providers {
@@ -50,17 +50,29 @@ func main() {
 
 	//smb := make(map[string]int)
 
-	assets, err := backend.LoadPrices(ctx, currency)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//assets, err := integrations.LoadPrices(ctx, currency)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
-	historyTimeLimit := time.Now().Add(time.Hour * 24 * (-40))
-	log.Println(historyTimeLimit)
+	dayTimeLimit := time.Now().Add(time.Hour * (-24))
+	weekTimeLimit := dayTimeLimit.Add(time.Hour * (-24) * 7)
+	monthTimeLimit := weekTimeLimit.Add(time.Hour * (-24) * 31)
+
+	log.Println(dayTimeLimit)
+
+	var nilCurrencies []price.Value
+
+	counter := 0
 
 	for key, val := range cgSymbols {
-		log.Println(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/market_chart?vs_currency=%s&days=10", val, currency))
-		h, err := http.Get(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/market_chart?vs_currency=%s&days=10", val, currency))
+		if counter == 45 {
+			counter = 0
+			<-time.Tick(time.Minute)
+		}
+		counter++
+		log.Println(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/market_chart?vs_currency=%s&days=40", val, currency))
+		h, err := http.Get(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/market_chart?vs_currency=%s&days=40", val, currency))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -74,22 +86,30 @@ func main() {
 		})
 		var historyRecords []price.HistoryRecord
 		var latestHistoryRecord price.HistoryRecord
-		price0 := assets.Prices[key]
-		log.Printf("Price0: %+v\n", price0)
+		delta := -time.Hour
+		price0 := price.Value{
+			Source:   "coingecko",
+			Symbol:   key,
+			Currency: currency,
+		}
+		//log.Printf("Price0: %+v\n", price0)
 		for index, a := range ph.Prices {
 			ts := time.Unix(int64(a[0])/1000, int64(a[0])%1000)
-			log.Println(fmt.Sprintf("%f", a[0]))
-			log.Println(ts)
-			log.Println(a[1])
 			if index == 0 {
 				price0.Price = a[1]
 				price0.TimeStamp = ts
 			}
-			if ts.Before(historyTimeLimit) {
+			if ts.Before(dayTimeLimit) {
+				delta = -time.Hour * 4
+			}
+			if ts.Before(weekTimeLimit) {
+				delta = -time.Hour * 6
+			}
+			if ts.Before(monthTimeLimit) {
 				break
 			}
 			if latestHistoryRecord.TimeStamp.IsZero() ||
-				ts.Before(latestHistoryRecord.TimeStamp.Add(-time.Hour*4)) {
+				ts.Before(latestHistoryRecord.TimeStamp.Add(delta)) {
 				latestHistoryRecord = price.HistoryRecord{
 					TimeStamp: ts,
 					Price:     a[1],
@@ -100,8 +120,12 @@ func main() {
 		sort.Slice(historyRecords, func(i, j int) bool {
 			return historyRecords[i].TimeStamp.Before(historyRecords[j].TimeStamp)
 		})
-		log.Printf("history_records(%s:%s): %+v\n", key, val, historyRecords)
+		log.Printf("historyRecords: %d", len(historyRecords))
 		log.Printf("Price1: %+v\n", price0)
+		if price0.Price == 0 {
+			nilCurrencies = append(nilCurrencies, price0)
+			continue
+		}
 		newAsset := price.Asset{
 			Name: currency,
 			Prices: map[string]price.Value{
@@ -111,17 +135,17 @@ func main() {
 				key: historyRecords,
 			},
 		}
-		log.Printf("NEW_ASSET: %+v\n", newAsset)
 		if err := backend.SavePrices(ctx, currency, &newAsset); err != nil {
 			log.Fatal(err)
 		}
 	}
+	log.Printf("NILS ARE: %+v", nilCurrencies)
 
 	//universe-token
 
 	//tt := 0
 	//for _, asset := range cfg.Assets {
-	//	assets, err := backend.LoadPrices(ctx, asset)
+	//	assets, err := integrations.LoadPrices(ctx, asset)
 	//	if err != nil {
 	//		log.Fatal(err)
 	//	}
@@ -157,7 +181,7 @@ func main() {
 	//				if ts.After(latestHistoryRecord.TimeStamp.Add(time.Hour * 24)) {
 	//					latestHistoryRecord = price.HistoryRecord{
 	//						TimeStamp: ts,
-	//						Price:     a[1],
+	//						Value:     a[1],
 	//					}
 	//					historyRecords = append(historyRecords, latestHistoryRecord)
 	//				}
@@ -178,7 +202,7 @@ func main() {
 	//				tt = 0
 	//				<-time.Tick(time.Minute)
 	//			}
-	//			if err := backend.SavePrices(ctx, asset, &newAsset); err != nil {
+	//			if err := integrations.SavePrices(ctx, asset, &newAsset); err != nil {
 	//				log.Fatal(err)
 	//			}
 	//			//log.Fatal("DONE")

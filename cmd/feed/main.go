@@ -85,7 +85,7 @@ func main() {
 			os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
 		)
 		if err != nil {
-			logger.Fatal(ctx, "err getting contract backend: %s", err)
+			logger.Fatal(ctx, "err getting contract integrations: %s", err)
 			return
 		}
 
