@@ -18,7 +18,7 @@ services:
       - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
     networks:
       app:
-        ipv4_address: ${NETWORK_PREFIX:-173.200.201}.11
+        ipv4_address: ${NETWORK_PREFIX:-173.200.202}.11
         aliases:
           - price-api.${APP_NAME:-app}.compose
     volumes:
@@ -48,7 +48,7 @@ services:
       - "${PUBLIC_PORT:-8080}:${PORT:-8080}"
     networks:
       app:
-        ipv4_address: ${NETWORK_PREFIX:-173.200.201}.10
+        ipv4_address: ${NETWORK_PREFIX:-173.200.202}.10
         aliases:
           - price-api.${APP_NAME:-app}.compose
     volumes:
