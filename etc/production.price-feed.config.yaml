@@ -43,6 +43,6 @@ consumers:
           currency: "usd"
           percent_threshold: 0.25
 coingecko:
-  assets_path: "/etc/hmq/coingecko.assets.yaml|COINGECKO_ASSETS_PATH"
+  assets_path: "/etc/hmq/coingecko.assets.yaml"
 eth:
-  networks_path: "/etc/hmq/eth.networks.yaml|ETH_NETWORKS_PATH"
+  networks_path: "/etc/hmq/eth.networks.yaml"
