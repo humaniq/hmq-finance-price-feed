@@ -3542,7 +3542,7 @@ symbols:
     feb: foreverblast
     fed: fedora-gold
     feed: feeder-finance
-    feedtk: feed-system
+    feedtk: feed_old-system
     feel: feelcoin
     feenixv2: projectfeenixv2
     fees: unifees
@@ -3844,7 +3844,7 @@ symbols:
     fun: funfair
     fund: unification
     fundx: funder-one
-    fups: feed-pups
+    fups: feed_old-pups
     fur: pagan-gods-fur-token
     fury: engines-of-fury
     fusd: fuse-dollar

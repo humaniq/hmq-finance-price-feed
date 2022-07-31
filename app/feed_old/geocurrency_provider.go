@@ -1,22 +1,22 @@
-package feed
+package feed_old
 
 import (
 	"context"
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices_old"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type GeoCurrencyPriceProvider struct {
-	client     *prices.IPCurrencyAPI
+	client     *prices_old.IPCurrencyAPI
 	ticker     *time.Ticker
 	symbols    map[string]string
 	currencies map[string]string
 }
 
-func NewGeoCurrencyPriceProvider(tick time.Duration, client *prices.IPCurrencyAPI, symbols map[string]string, currencies map[string]string) *GeoCurrencyPriceProvider {
+func NewGeoCurrencyPriceProvider(tick time.Duration, client *prices_old.IPCurrencyAPI, symbols map[string]string, currencies map[string]string) *GeoCurrencyPriceProvider {
 	return &GeoCurrencyPriceProvider{
 		client:     client,
 		ticker:     time.NewTicker(tick),

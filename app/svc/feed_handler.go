@@ -66,7 +66,7 @@ func (h *PriceFeedHandler) Start() error {
 			}
 		}()
 		for item := range c {
-			logger.Debug(ctx, "feed: %+v", item)
+			logger.Debug(ctx, "feed_old: %+v", item)
 			records := item.records
 			for _, filter := range h.filters {
 				logger.Debug(ctx, "filtering %+v", records)

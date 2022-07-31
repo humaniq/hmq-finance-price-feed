@@ -37,7 +37,7 @@ paths:
   /prices/list:
     get:
       tags:
-        - prices
+        - prices_old
       parameters:
         - name: symbol
           in: query

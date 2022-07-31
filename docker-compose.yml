@@ -14,7 +14,7 @@ services:
       - "CONFIG_PATH=${CONFIG_PATH:-/etc/hmq/compose.price-api.yaml}"
       - "LISTEN=${LISTEN:-}"
       - "PORT=${PORT:-8080}"
-      - "OPENAPI_PATH=${OPENAPI_PATH:-/usr/local/share/prices.openapi.yaml}"
+      - "OPENAPI_PATH=${OPENAPI_PATH:-/usr/local/share/prices_old.openapi.yaml}"
       - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
       - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
       - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"

@@ -18,7 +18,10 @@ const coinAddressHex = "0x2bA64EFB7A4Ec8983E22A49c81fa216AC33f383A"
 
 const contractAddressHex = "0x5641d752955C089Df17D04A3ac1EFD5Ba590fB7b"
 
-const price = 0.06452986
+const price = 0.07057921
+
+//const chainId = 1337
+const chainId = 56
 
 func main() {
 
@@ -49,10 +52,11 @@ func main() {
 
 	//clientAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(chainId))
 	if err != nil {
 		log.Fatal(err)
 	}
+	auth.From = clientAddress
 	auth.Value = big.NewInt(0)
 	auth.GasLimit = uint64(300000)
 
@@ -70,12 +74,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("NONCE: %v", nonce)
 	auth.Nonce = big.NewInt(int64(nonce))
-	log.Println(toBigIntPrice(price, 18))
 	if tx, err := gp.SetDirectPrice(auth, common.HexToAddress(coinAddressHex), toBigIntPrice(price, 18)); err != nil {
 		log.Fatal(err)
 	} else {
+		log.Println(tx.Cost())
+		log.Println(tx.GasPrice())
+		log.Println(tx.Hash())
 		log.Println(tx.Value())
 	}
 

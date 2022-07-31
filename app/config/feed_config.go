@@ -1,61 +1,77 @@
 package config
 
 import (
-	"os"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/application"
 )
 
-type Feed struct {
-	Assets     []string          `yaml:"assets"`
-	Currencies map[string]string `yaml:"currencies"`
-	Providers  []ProviderConfig  `yaml:"providers"`
-	Diffs      Diffs             `yaml:"diffs"`
-	ForceUpdateSeconds map[string]int64  `yaml:"force_update_seconds"`
+const DefaultPriceFeedTickDuration = time.Minute * 5
+
+type PriceFeed struct {
+	Assets      []string          `yaml:"assets"`
+	Currencies  map[string]string `yaml:"currencies"`
+	Providers   PriceProviders    `yaml:"providers"`
+	Consumers   PriceConsumers    `yaml:"consumers"`
+	Coingecko   Coingecko         `yaml:"coingecko"`
+	EthNetworks EthNetworks       `yaml:"eth"`
 }
 
-type ProviderConfig struct {
-	Name       string            `yaml:"name"`
-	Type       string            `yaml:"type"`
-	Symbols    map[string]string `yaml:"symbols"`
-	Currencies map[string]string `yaml:"currencies"`
+type EthNetworks struct {
+	NetworksPath string                `yaml:"networks_path"`
+	Networks     map[string]EthNetwork `yaml:"networks"`
 }
 
-func FeedConfigFromFile(filePath string) (*Feed, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
+func PriceFeedConfigFromFile(filePath string) (*PriceFeed, error) {
+	config := PriceFeed{
+		Currencies: make(map[string]string),
+		EthNetworks: EthNetworks{
+			Networks: make(map[string]EthNetwork),
+		},
+	}
+	if err := application.ReadFromYamlFile(filePath, &config); err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	var config Feed
-	if err := yaml.NewDecoder(file).Decode(&config); err != nil {
-		return nil, err
+	if config.EthNetworks.NetworksPath != "" {
+		if err := application.ReadFromYamlFile(config.EthNetworks.NetworksPath, &config.EthNetworks.Networks); err != nil {
+			return nil, err
+		}
 	}
+	config.OverridesFromEnv()
 	return &config, nil
 }
 
-type Diffs map[string]int
-
-func (dc Diffs) Diff(symbol string) int {
-	if val, found := dc[symbol]; found {
-		return val
+func (pf *PriceFeed) OverridesFromEnv() {
+	pf.Coingecko.AssetsPath = application.StringsValueEnvOverride(pf.Coingecko.AssetsPath, "COINGECKO_ASSETS_PATH")
+	for index, gecko := range pf.Consumers.PriceOracles {
+		gecko.ClientPrivateKey = application.StringsValueEnvOverride(gecko.ClientPrivateKey, "")
+		pf.Consumers.PriceOracles[index] = gecko
 	}
-	return 10000
 }
 
-type TSDiffs map[string]time.Duration
-
-func NewTSDiffsFromSeconds(seconds map[string]int64) TSDiffs {
-	result := make(map[string]time.Duration)
-	for key, val := range seconds {
-		result[key] = time.Duration(val) * time.Second
-	}
-	return result
+type PriceProviders struct {
+	Coingeckos []CoingeckoFeedConfig `yaml:"coingecko"`
 }
-func (dc TSDiffs) Diff(symbol string) time.Duration {
-	if val, found := dc[symbol]; found {
-		return val
+
+type CoingeckoFeedConfig struct {
+	Name        string   `yaml:"name"`
+	Currencies  []string `yaml:"currencies"`
+	Symbols     []string `yaml:"symbols"`
+	EveryString string   `yaml:"every"`
+}
+
+func (cfc *CoingeckoFeedConfig) Every() time.Duration {
+	duration, err := time.ParseDuration(cfc.EveryString)
+	if err != nil {
+		return DefaultPriceFeedTickDuration
 	}
-	return time.Hour * 24
+	return duration
+}
+
+type PriceConsumers struct {
+	PriceOracles []PriceOracleContract `yaml:"price_oracle"`
+}
+
+type Coingecko struct {
+	AssetsPath string `yaml:"assets_path"`
 }

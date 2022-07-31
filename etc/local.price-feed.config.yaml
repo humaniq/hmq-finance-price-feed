@@ -1,0 +1,67 @@
+assets:
+  - btc
+  - eth
+  - usd
+  - eur
+  - rub
+  - bnb
+  - cny
+  - jpy
+currencies:
+  btc: btc
+  eth: eth
+  usd: usd
+  eur: eur
+  rub: rub
+  bnb: bnb
+  cny: cny
+  jpy: jpy
+  tzs: usd
+  ugx: usd
+  frw: usd
+  krw: usd
+providers:
+  coingecko:
+    - name: "HMQ+Stables"
+      currencies:
+        - btc
+        - eth
+        - usd
+        - eur
+        - rub
+        - bnb
+        - cny
+        - jpy
+      symbols:
+        - eth
+        - hmq
+        - btc
+        - usdt
+        - usdc
+      every: '30s'
+    - name: Savy-Price-Oracle
+      currencies:
+        - usd
+        - eur
+      symbols:
+        - wbgl
+        - busd
+        - usdt
+      every: '1m'
+consumers:
+  price_oracle:
+    - name: "BSC-Main Price-Oracle"
+      network_uid: "2f8f31db-c0a7-4893-b4d7-fe1edb7d36bd"
+      contract_address_hex: "0x5641d752955C089Df17D04A3ac1EFD5Ba590fB7b"
+      client_private_key: "|BSC_ORACLE_PRIVATE_KEY"
+      tokens:
+        - symbol: "wbgl"
+          currency: "usd"
+          percent_threshold: 5
+        - symbol: "busd"
+          currency: "usd"
+          percent_threshold: 0.25
+coingecko:
+  assets_path: "etc/coingecko.assets.yaml|COINGECKO_ASSETS_PATH"
+eth:
+  networks_path: "etc/eth.networks.yaml"

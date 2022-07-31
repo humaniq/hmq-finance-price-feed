@@ -1,4 +1,4 @@
-package feed
+package feed_old
 
 import (
 	"context"
@@ -81,7 +81,7 @@ func (sc *StorageConsumer) Run() {
 			changes := currencyPrices.Changes()
 			if len(changes) > 0 {
 				if err := sc.back.SavePrices(ctx, currency, currencyPrices.Stage()); err != nil {
-					logger.Error(ctx, "[%s] error saving prices: %s", sc.name, err)
+					logger.Error(ctx, "[%s] error saving prices_old: %s", sc.name, err)
 					continue
 				}
 				nextItems = append(nextItems, changes...)

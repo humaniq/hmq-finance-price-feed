@@ -7,6 +7,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/cors v1.2.0
+	github.com/google/uuid v1.2.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	google.golang.org/api v0.15.0
@@ -25,7 +26,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect
-	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/jstemmer/go-junit-report v0.9.1 // indirect

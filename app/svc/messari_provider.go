@@ -4,19 +4,19 @@ import (
 	"context"
 	"time"
 
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices_old"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type MessariPriceProvider struct {
-	client  *prices.Messari
+	client  *prices_old.Messari
 	ticker  *time.Ticker
 	symbols []string
 }
 
 func NewMessariPriceProvider(tick time.Duration, symbols []string) *MessariPriceProvider {
 	return &MessariPriceProvider{
-		client:  prices.NewMessari(),
+		client:  prices_old.NewMessari(),
 		ticker:  time.NewTicker(tick),
 		symbols: symbols,
 	}
@@ -27,7 +27,7 @@ func (mpp *MessariPriceProvider) Provide(ctx context.Context, feed chan<- *FeedI
 		for _, symbol := range mpp.symbols {
 			price, err := mpp.client.GetPricesForSymbol(ctx, symbol)
 			if err != nil {
-				logger.Error(ctx, "error getting prices: %s", err.Error())
+				logger.Error(ctx, "error getting prices_old: %s", err.Error())
 				continue
 			}
 			now := time.Now()

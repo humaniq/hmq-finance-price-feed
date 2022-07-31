@@ -1,4 +1,4 @@
-package prices
+package prices_old
 
 import (
 	"context"

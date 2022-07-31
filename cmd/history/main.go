@@ -15,14 +15,14 @@ import (
 )
 
 type PricesHistory struct {
-	Prices [][]float64 `json:"prices"`
+	Prices [][]float64 `json:"prices_old"`
 }
 
 func main() {
 
 	ctx := context.Background()
 
-	cfg, err := config.FeedConfigFromFile("etc/price-feed.config.yaml")
+	cfg, err := config.FeedCfgFromFile("etc/price-feed_old.config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}

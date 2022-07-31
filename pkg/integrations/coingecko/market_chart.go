@@ -54,5 +54,5 @@ func GetMarketChart(ctx context.Context, client *http.Client, id string, currenc
 
 type marketChartResponseBody struct {
 	MarketCaps [][]float64 `json:"market_caps"`
-	Prices     [][]float64 `json:"prices"`
+	Prices     [][]float64 `json:"prices_old"`
 }

@@ -77,7 +77,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 
 		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 		if err != nil {
-			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices_old"), http.StatusInternalServerError)
 			return
 		}
 		for _, symbol := range symbols {

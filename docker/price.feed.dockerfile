@@ -12,7 +12,7 @@ COPY app ./app
 COPY cmd ./cmd
 COPY pkg ./pkg
 
-RUN go build -o /build/hmq.prices_old.api ./cmd/api/main.go
+RUN go build -o /build/hmq.prices_old.feed_old ./cmd/feed_old/main.go
 
 FROM debian:bullseye-slim
 
@@ -20,10 +20,10 @@ WORKDIR /
 
 RUN apt update && apt -y upgrade && apt -y install ca-certificates && apt -y autoremove
 
-COPY --from=build /build/hmq.prices.api /usr/local/bin/hmq.prices.api
+COPY --from=build /build/hmq.prices.feed /usr/local/bin/hmq.prices.feed
 COPY spec /usr/local/share
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/hmq.prices.api"]
+ENTRYPOINT ["/usr/local/bin/hmq.prices.feed"]
 

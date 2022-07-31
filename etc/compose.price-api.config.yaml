@@ -1,6 +1,6 @@
 api:
   port: "8080"
-  openapi_path: "/usr/local/share/prices.openapi.yaml"
+  openapi_path: "/usr/local/share/prices_old.openapi.yaml"
   base_url: "http://localhost:9002"
 assets:
   - btc

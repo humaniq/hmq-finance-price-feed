@@ -10,9 +10,9 @@ import (
 
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/app/feed"
+	"github.com/humaniq/hmq-finance-price-feed/app/feed_old"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices_old"
 	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
@@ -35,9 +35,9 @@ func main() {
 
 	configPath := os.Getenv("CONFIG_FILE_PATH")
 	if configPath == "" {
-		configPath = "/etc/hmq/price-feed.yaml"
+		configPath = "/etc/hmq/price-feed_old.yaml"
 	}
-	cfg, err := config.FeedConfigFromFile(configPath)
+	cfg, err := config.FeedCfgFromFile(configPath)
 	if err != nil {
 		logger.Fatal(ctx, "error getting config: %s", err)
 		return
@@ -59,7 +59,7 @@ func main() {
 		currencyState, err := backend.LoadPrices(ctx, currency)
 		if err != nil {
 			if !errors.Is(err, app.ErrNotFound) {
-				logger.Fatal(ctx, "prices state init: %s", err)
+				logger.Fatal(ctx, "prices_old state init: %s", err)
 				return
 			}
 			currencyState = price.NewAsset(currency)
@@ -70,7 +70,7 @@ func main() {
 		)
 	}
 
-	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
+	dsConsumer := feed_old.NewStorageConsumer("DS", backend, pricesState)
 
 	if contractUrl := os.Getenv("CONTRACT_PRICES_URL"); contractUrl != "" {
 		chainIdString := os.Getenv("CONTRACT_CHAIN_ID")
@@ -93,7 +93,7 @@ func main() {
 		ps["usd"] = pricesState["usd"]
 		ps["eur"] = pricesState["eur"]
 
-		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, ps)
+		contractConsumer := feed_old.NewStorageConsumer("CONTRACT", contractBackend, ps)
 		go contractConsumer.Run()
 		defer contractConsumer.WaitForDone()
 		dsConsumer = dsConsumer.WithNext(
@@ -115,7 +115,7 @@ func main() {
 			go func(providerConfig config.ProviderConfig) {
 				defer wg.Done()
 				defer dsConsumer.Release()
-				if err := feed.NewCoinGeckoProvider(defaultProviderTickPeriod, prices.NewCoinGecko(), providerConfig.Symbols, providerConfig.Currencies).
+				if err := feed_old.NewCoinGeckoProvider(defaultProviderTickPeriod, prices_old.NewCoinGecko(), providerConfig.Symbols, providerConfig.Currencies).
 					Provide(ctx, dsConsumer.Lease()); err != nil {
 					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
 				}
@@ -124,7 +124,7 @@ func main() {
 			go func(providerConfig config.ProviderConfig) {
 				defer wg.Done()
 				defer dsConsumer.Release()
-				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(defaultProviderTickPeriod, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), providerConfig.Symbols, providerConfig.Currencies)
+				geoCurrencyProvider := feed_old.NewGeoCurrencyPriceProvider(defaultProviderTickPeriod, prices_old.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), providerConfig.Symbols, providerConfig.Currencies)
 				if err := geoCurrencyProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
 					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
 				}

@@ -1,11 +1,11 @@
-package feed
+package feed_old
 
 import (
 	"context"
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices_old"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
@@ -14,7 +14,7 @@ type CoinGeckoPriceProvider struct {
 	ticker *time.Ticker
 }
 
-func NewCoinGeckoProvider(tick time.Duration, client *prices.CoinGecko, symbols map[string]string, currencies map[string]string) *CoinGeckoPriceProvider {
+func NewCoinGeckoProvider(tick time.Duration, client *prices_old.CoinGecko, symbols map[string]string, currencies map[string]string) *CoinGeckoPriceProvider {
 	return &CoinGeckoPriceProvider{get: client.GetterFunc(symbols, currencies), ticker: time.NewTicker(tick)}
 }
 
