@@ -1,6 +1,30 @@
 version: '3.7'
 
 services:
+  prices-feed:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: ./
+      dockerfile: docker/price.feed.dockerfile
+    image: "hmq.price.feed:${IMAGE_TAG:-compose}"
+    environment:
+      - "ENVIRONMENT=${ENVIRONMENT:-compose}"
+      - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
+      - "BSC_ORACLE_PRIVATE_KEY=${BSC_ORACLE_PRIVATE_KEY:-}"
+      - "CONFIG_PATH=${CONFIG_PATH:-/etc/hmq/production.price-feed.config.yaml}"
+      - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
+      - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
+      - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
+    networks:
+      app:
+        ipv4_address: ${NETWORK_PREFIX:-173.200.201}.11
+        aliases:
+          - price-api.${APP_NAME:-app}.compose
+    volumes:
+      - ./.local/secret:/secret
+      - ./etc:/etc/hmq
+
   prices-api:
     extra_hosts:
       - "host.docker.internal:host-gateway"
