@@ -29,13 +29,13 @@ func (p *Provider) Name() string {
 }
 
 func (p *Provider) Provide(ctx context.Context, out chan<- []price.Value) error {
-	logger.Info(ctx, "providing %s every %v", p.Name(), p.every)
+	logger.Info(ctx, "Provider %s, every %v", p.Name(), p.every)
 	p.ticker = time.NewTicker(p.every)
 	go p.Run(ctx, p.ticker, out)
 	return nil
 }
 func (p *Provider) Stop() {
-	<-p.done
+	p.ticker.Stop()
 }
 func (p *Provider) WaitForDone() {
 	<-p.done

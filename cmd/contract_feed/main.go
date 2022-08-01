@@ -3,16 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/prices"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"log"
 	"os"
 	"strconv"
-	"sync"
-
-	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/app/prices"
 )
 
 func main() {
@@ -52,7 +50,8 @@ func main() {
 
 	logger.Info(ctx, "CONFIG: %+v", cfg)
 
-	var providers []*prices.Provider
+	providerPool := prices.NewProviderPool()
+
 	if len(cfg.Providers.Coingeckos) > 0 {
 		assets, err := config.AssetsFromFile(cfg.Coingecko.AssetsPath)
 		if err != nil {
@@ -61,7 +60,7 @@ func main() {
 		}
 		cg := prices.NewCoingecko(assets)
 		for _, gecko := range cfg.Providers.Coingeckos {
-			providers = append(providers, prices.NewProvider(gecko.Name, cg.GetterFunc(gecko.Symbols, gecko.Currencies), gecko.Every()))
+			providerPool.AddProvider(prices.NewProvider(gecko.Name, cg.GetterFunc(gecko.Symbols, gecko.Currencies), gecko.Every()))
 		}
 	}
 
@@ -77,23 +76,15 @@ func main() {
 		consumer.AddWorker(oracle)
 	}
 
-	if err := consumer.Consume(ctx, feed); err != nil {
+	if err := consumer.Consume(ctx, providerPool.Feed()); err != nil {
 		logger.Fatal(ctx, "CONSUMER FAILED: %s", err)
 		return
 	}
 	defer consumer.WaitForDone()
 
-	var wg sync.WaitGroup
-	wg.Add(len(providers))
-	for _, provider := range providers {
-		go func(p *prices.Provider) {
-			defer wg.Done()
-			if err := p.Provide(ctx, feed); err != nil {
-				logger.Fatal(ctx, "PROVIDER %s START ERROR: %s", p.Name(), err)
-			}
-			p.WaitForDone()
-		}(provider)
+	if err := providerPool.Start(ctx); err != nil {
+		logger.Fatal(ctx, "PROVIDER START FAILED: %s", err)
+		return
 	}
-	wg.Wait()
 
 }
