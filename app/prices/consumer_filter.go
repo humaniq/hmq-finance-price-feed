@@ -28,3 +28,25 @@ func AllOf(fns ...ConsumerFilterFunc) ConsumerFilterFunc {
 		return true
 	}
 }
+
+type ConsumerWorkerFilterWrapper struct {
+	filterFunc ConsumerFilterFunc
+	worker     ConsumerWorker
+}
+
+func NewConsumerWorkerFilterWpapper(filter ConsumerFilterFunc) *ConsumerWorkerFilterWrapper {
+	return &ConsumerWorkerFilterWrapper{filterFunc: filter}
+}
+func (cwfw *ConsumerWorkerFilterWrapper) Wrap(worker ConsumerWorker) *ConsumerWorkerFilterWrapper {
+	cwfw.worker = worker
+	return cwfw
+}
+func (cwfw *ConsumerWorkerFilterWrapper) Work(ctx context.Context, values []price.Value) {
+	var filtered []price.Value
+	for _, value := range values {
+		if cwfw.filterFunc(ctx, value) {
+			filtered = append(filtered, value)
+		}
+	}
+	cwfw.worker.Work(ctx, filtered)
+}

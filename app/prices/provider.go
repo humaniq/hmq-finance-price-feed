@@ -8,6 +8,8 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
+type ProviderFunc func(ctx context.Context) ([]price.Value, error)
+
 type Provider struct {
 	fn     ProviderFunc
 	name   string
