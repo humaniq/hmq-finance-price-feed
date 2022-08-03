@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"log"
 	"os"
 	"strconv"
 )
@@ -17,15 +15,24 @@ func main() {
 
 	ctx := context.Background()
 
-	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
-		if logLevelNumeric, err := strconv.ParseUint(logLevel, 10, 8); err == nil {
-			app.InitDefaultLogger(uint8(logLevelNumeric))
+	logLevel := blogger.LevelDefault
+	if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
+		if logLevelNumeric, err := strconv.ParseUint(logLevelEnv, 10, 8); err == nil {
+			logLevel = uint8(logLevelNumeric)
 		} else {
-			app.InitDefaultLogger(blogger.StringToLevel(logLevel))
+			logLevel = blogger.StringToLevel(logLevelEnv)
 		}
-	} else {
-		app.InitDefaultLogger(blogger.LevelInfo)
 	}
+	app.InitLogger(
+		blogger.NewLog(
+			[]blogger.LoggerMiddlewareFunc{
+				blogger.LogLevelFilter(logLevel),
+				blogger.LevelPrefix(),
+				blogger.CurrentTimeFormat("(2006-01-02)(15:04:05MST)"),
+				blogger.CtxStringValues("uid", "tag"),
+			},
+			blogger.NewIOWriterRouter(os.Stdout, os.Stderr, os.Stderr, true)),
+	)
 
 	environment := os.Getenv("ENVIRONMENT")
 	if environment == "" {
@@ -43,19 +50,19 @@ func main() {
 
 	cfg, err := config.PriceFeedConfigFromFile(configPath)
 	if err != nil {
-		app.Fatal(ctx, "ERROR READING CONFIG: %s", err)
+		app.Logger().Fatal(ctx, "ERROR READING CONFIG: %s", err)
 		return
 	}
 	cfg.OverridesFromEnv()
 
-	app.Info(ctx, "CONFIG: %+v", cfg)
+	app.Logger().Info(ctx, "CONFIG: %+v", *cfg)
 
 	providerPool := prices.NewProviderPool()
 
 	if len(cfg.Providers.Coingeckos) > 0 {
 		assets, err := config.AssetsFromFile(cfg.Coingecko.AssetsPath)
 		if err != nil {
-			app.Fatal(ctx, "FAIL GETTING COINGECKO ASSETS: %s", err)
+			app.Logger().Fatal(ctx, "FAIL GETTING COINGECKO ASSETS: %s", err)
 			return
 		}
 		cg := prices.NewCoingecko(assets)
@@ -64,26 +71,27 @@ func main() {
 		}
 	}
 
-	feed := make(chan []price.Value)
+	//feed := make(chan []price.Value)
 
 	consumer := prices.NewConsumer()
+	consumer.AddWorker(&prices.LogWorker{})
 
-	for _, oracleCfg := range cfg.Consumers.PriceOracles {
-		oracle, err := prices.NewPriceOracle(oracleCfg, cfg.EthNetworks.Networks)
-		if err != nil {
-			log.Fatal(err)
-		}
-		consumer.AddWorker(oracle)
-	}
+	//for _, oracleCfg := range cfg.Consumers.PriceOracles {
+	//	oracle, err := prices.NewPriceOracle(oracleCfg, cfg.EthNetworks.Networks)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	consumer.AddWorker(oracle)
+	//}
 
 	if err := consumer.Consume(ctx, providerPool.Feed()); err != nil {
-		app.Fatal(ctx, "CONSUMER FAILED: %s", err)
+		app.Logger().Fatal(ctx, "CONSUMER FAILED: %s", err)
 		return
 	}
 	defer consumer.WaitForDone()
 
 	if err := providerPool.Start(ctx); err != nil {
-		app.Fatal(ctx, "PROVIDER START FAILED: %s", err)
+		app.Logger().Fatal(ctx, "PROVIDER START FAILED: %s", err)
 		return
 	}
 

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func CtxStringValues(keys ...string) func(next BufferedHandler) BufferedHandler {
+func CtxStringValues(keys ...string) LoggerMiddlewareFunc {
 	return func(next BufferedHandler) BufferedHandler {
 		return BufferedHandlerFunc(func(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{}) {
 			b.WriteString("[CTX:")
@@ -22,7 +22,7 @@ func CtxStringValues(keys ...string) func(next BufferedHandler) BufferedHandler 
 	}
 }
 
-func CurrentTimeFormat(format string) func(next BufferedHandler) BufferedHandler {
+func CurrentTimeFormat(format string) LoggerMiddlewareFunc {
 	return func(next BufferedHandler) BufferedHandler {
 		return BufferedHandlerFunc(func(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{}) {
 			b.WriteRune('[')
@@ -33,28 +33,30 @@ func CurrentTimeFormat(format string) func(next BufferedHandler) BufferedHandler
 	}
 }
 
-func LevelPrefix(next BufferedHandler) BufferedHandler {
-	return BufferedHandlerFunc(func(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{}) {
-		switch level {
-		case Fatal:
-			b.WriteString("[FATAL]")
-		case Critical:
-			b.WriteString("[CRITICAL]")
-		case Error:
-			b.WriteString("[ERROR]")
-		case Warn:
-			b.WriteString("[WARN]")
-		case Info:
-			b.WriteString("[INFO]")
-		case Debug:
-			b.WriteString("[DEBUG]")
-		case Trace:
-			b.WriteString("[TRACE]")
-		case Unsafe:
-			b.WriteString("!!!UNSAFE!!!")
-		default:
-			b.WriteString("???UNKNOWN???")
-		}
-		next.HandleLogBuffer(ctx, level, b, text, args...)
-	})
+func LevelPrefix() LoggerMiddlewareFunc {
+	return func(next BufferedHandler) BufferedHandler {
+		return BufferedHandlerFunc(func(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{}) {
+			switch level {
+			case Fatal:
+				b.WriteString("[FATAL]")
+			case Critical:
+				b.WriteString("[CRITICAL]")
+			case Error:
+				b.WriteString("[ERROR]")
+			case Warn:
+				b.WriteString("[WARN]")
+			case Info:
+				b.WriteString("[INFO]")
+			case Debug:
+				b.WriteString("[DEBUG]")
+			case Trace:
+				b.WriteString("[TRACE]")
+			case Unsafe:
+				b.WriteString("!!!UNSAFE!!!")
+			default:
+				b.WriteString("???UNKNOWN???")
+			}
+			next.HandleLogBuffer(ctx, level, b, text, args...)
+		})
+	}
 }

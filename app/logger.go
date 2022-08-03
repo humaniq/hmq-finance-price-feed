@@ -9,7 +9,7 @@ import (
 var loggerInstance blogger.Logger
 
 func InitDefaultLogger(level uint8) {
-	loggerInstance = blogger.NewLog([]func(next blogger.BufferedHandler) blogger.BufferedHandler{
+	loggerInstance = blogger.NewLog([]blogger.LoggerMiddlewareFunc{
 		blogger.LogLevelFilter(level),
 	},
 		blogger.NewIOWriterRouter(os.Stdout, os.Stderr, os.Stderr, true))

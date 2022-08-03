@@ -11,7 +11,7 @@ type Log struct {
 }
 
 func NewLog(
-	middlewares []func(next BufferedHandler) BufferedHandler,
+	middlewares []LoggerMiddlewareFunc,
 	out BufferedHandler,
 ) *Log {
 	handler := out
@@ -24,28 +24,28 @@ func NewLog(
 	}
 }
 func (l *Log) Fatal(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Fatal, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Critical(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Critical, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Error(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Error, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Warn(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Warn, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Info(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Info, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Debug(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Debug, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Trace(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Trace, bytes.Buffer{}, text, args...)
 }
 func (l *Log) Unsafe(ctx context.Context, text string, args ...interface{}) {
-	l.handler.HandleLogBuffer(ctx, LevelFatal, bytes.Buffer{}, text, args)
+	l.handler.HandleLogBuffer(ctx, Unsafe, bytes.Buffer{}, text, args...)
 }
 
 type IOWriterRouter struct {
@@ -63,12 +63,12 @@ func NewIOWriterRouter(out, err, unsafe io.Writer, forceNewLine bool) *IOWriterR
 }
 func (iowr *IOWriterRouter) HandleLogBuffer(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{}) {
 	if level <= LevelError {
-		iowr.err.HandleLogBuffer(ctx, level, b, text, args)
+		iowr.err.HandleLogBuffer(ctx, level, b, text, args...)
 		return
 	}
 	if level < LevelUnsafe {
-		iowr.out.HandleLogBuffer(ctx, level, b, text, args)
+		iowr.out.HandleLogBuffer(ctx, level, b, text, args...)
 		return
 	}
-	iowr.unsafe.HandleLogBuffer(ctx, level, b, text, args)
+	iowr.unsafe.HandleLogBuffer(ctx, level, b, text, args...)
 }
