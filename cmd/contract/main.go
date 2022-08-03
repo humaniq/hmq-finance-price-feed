@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/humaniq/hmq-finance-price-feed/app/contracts"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum/contracts"
 	"log"
 	"math"
 	"math/big"
