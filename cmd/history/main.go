@@ -4,45 +4,50 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
+	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 )
 
 type PricesHistory struct {
-	Prices [][]float64 `json:"prices_old"`
+	Prices [][]float64 `json:"prices"`
 }
 
 func main() {
 
 	ctx := context.Background()
 
-	cfg, err := config.FeedCfgFromFile("etc/price-feed_old.config.yaml")
-	if err != nil {
-		log.Fatal(err)
-	}
 	gdsClient, err := gds.NewClient(ctx, "humaniq-168420", "hmq_price_assets")
 	if err != nil {
 		log.Fatal(err)
 	}
 	backend := storage.NewPricesDSv2(gdsClient)
 
-	currency := "jpy"
+	currency := "usd"
 
-	cgSymbols := make(map[string]string)
-	for _, v := range cfg.Providers {
-		if v.Name != "coingecko" {
-			continue
-		}
-		for key, val := range v.Symbols {
-			cgSymbols[val] = key
-		}
+	cfg := struct {
+		Symbols map[string]string `yaml:"symbols"`
+	}{
+		Symbols: make(map[string]string),
 	}
+
+	file, err := os.Open("etc/coingecko.assets.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
+		log.Fatal(err)
+	}
+	cgSymbols := cfg.Symbols
+
+	//log.Fatalf("%+v", cgSymbols)
 
 	//cgSymbols = map[string]string{
 	//	"usdt": "tether-avalanche-bridged-usdt-e",
@@ -81,6 +86,7 @@ func main() {
 			log.Fatal(err)
 		}
 		h.Body.Close()
+		//log.Printf("%+v", ph)
 		sort.Slice(ph.Prices, func(i, j int) bool {
 			return ph.Prices[i][0] > ph.Prices[j][0]
 		})
