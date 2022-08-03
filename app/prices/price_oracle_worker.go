@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
-
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum"
 )
 
 type PriceOracleWriteWorker struct {
@@ -32,7 +31,7 @@ func (poww *PriceOracleWriteWorker) Work(ctx context.Context, values []price.Val
 		if err != nil {
 			return err
 		}
-		logger.Info(context.WithValue(ctx, "TxID", txId), "[PriceOracleWorker] %f price written for %s=[%s]", value.Price, value.Symbol, symbol.AddressHex)
+		app.Logger().Info(context.WithValue(ctx, "TxID", txId), "[PriceOracleWorker] %f price written for %s=[%s]", value.Price, value.Symbol, symbol.AddressHex)
 	}
 	return nil
 }

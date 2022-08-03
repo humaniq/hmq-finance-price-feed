@@ -2,10 +2,10 @@ package prices
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type ProviderFunc func(ctx context.Context) ([]price.Value, error)
@@ -31,7 +31,7 @@ func (p *Provider) Name() string {
 }
 
 func (p *Provider) Provide(ctx context.Context, out chan<- []price.Value) error {
-	logger.Info(ctx, "Provider %s, every %v", p.Name(), p.every)
+	app.Logger().Info(ctx, "Provider %s, every %v", p.Name(), p.every)
 	p.ticker = time.NewTicker(p.every)
 	go p.Run(ctx, p.ticker, out)
 	return nil
@@ -48,7 +48,7 @@ func (p *Provider) Run(ctx context.Context, ticker *time.Ticker, out chan<- []pr
 	for range ticker.C {
 		values, err := p.fn(ctx)
 		if err != nil {
-			logger.Error(ctx, "ERROR GETTING COINGECKO DATA FOR %s: %s", p.name, err)
+			app.Logger().Error(ctx, "ERROR GETTING COINGECKO DATA FOR %s: %s", p.name, err)
 			continue
 		}
 		out <- values

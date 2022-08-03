@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"net/http"
 	"sort"
 	"strconv"
@@ -54,7 +54,7 @@ func MustGetStringListFromCtx(ctx context.Context, key string) []string {
 func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger.Info(ctx, "GetPricesFunc")
+		app.Logger().Info(ctx, "GetPricesFunc")
 		symbols := MustGetStringListFromCtx(ctx, CtxSymbolKey)
 		currencies := MustGetStringListFromCtx(ctx, CtxCurrencyKey)
 		if len(symbols) == 0 || len(currencies) == 0 {
@@ -77,7 +77,7 @@ func GetPricesFunc(backend svc.PricesGetter) http.HandlerFunc {
 
 		prices, err := backend.GetPrices(ctx, symbols, currencies, withHistory)
 		if err != nil {
-			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices_old"), http.StatusInternalServerError)
+			httpext.AbortJSON(w, httpapi.NewErrorResponse().WithPayload("error getting prices"), http.StatusInternalServerError)
 			return
 		}
 		for _, symbol := range symbols {

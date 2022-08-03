@@ -8,7 +8,6 @@ import (
 
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type AssetInMemoryRecord struct {
@@ -42,16 +41,16 @@ func (im *InMemory) Warm(ctx context.Context, currencyList []string, rotationTim
 		index := 0
 		for range ticker.C {
 			if im.next == nil {
-				logger.Error(ctx, "next is nil, no warm available")
+				app.Logger().Error(ctx, "next is nil, no warm available")
 				continue
 			}
 			currentAssetValue, err := im.next.LoadPrices(ctx, currencyList[index])
 			if err != nil {
-				logger.Error(ctx, "WARM: failed to update %s: %s", currencyList[index], err)
+				app.Logger().Error(ctx, "WARM: failed to update %s: %s", currencyList[index], err)
 				continue
 			}
 			im.set(currencyList[index], currentAssetValue)
-			logger.Info(ctx, "WARM: updated price for %s", currencyList[index])
+			app.Logger().Info(ctx, "WARM: updated price for %s", currencyList[index])
 			index++
 			if index >= len(currencyList) {
 				index = 0

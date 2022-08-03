@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const CtxRequestUidKey = "requestUid"
+const CtxRequestUidKey = "request_uid"
 
 func RequestUidMiddleware(ctxKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

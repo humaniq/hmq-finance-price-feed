@@ -5,4 +5,5 @@ import "errors"
 var ErrReading = errors.New("error reading")
 var ErrWriting = errors.New("error writing")
 
-var ErrNotFound = errors.New("not found")
+var ErrInvalid = errors.New("error invalid")
+var ErrNotFound = errors.New("error not found")

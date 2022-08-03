@@ -2,9 +2,8 @@ package prices
 
 import (
 	"context"
-
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
 
 type ProviderPool struct {
@@ -33,14 +32,14 @@ func (pp *ProviderPool) Start(ctx context.Context) error {
 }
 func (pp *ProviderPool) Stop(ctx context.Context) {
 	for name, provider := range pp.providers {
-		logger.Info(ctx, "Stopping provider %s", name)
+		app.Logger().Info(ctx, "Stopping provider %s", name)
 		provider.Stop()
 	}
 }
 func (pp *ProviderPool) WaitForDone(ctx context.Context) {
 	for name, provider := range pp.providers {
 		provider.WaitForDone()
-		logger.Info(ctx, "Provider %s stopped", name)
+		app.Logger().Info(ctx, "Provider %s stopped", name)
 	}
 	close(pp.out)
 }

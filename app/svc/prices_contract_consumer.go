@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/contracts"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"math"
 	"math/big"
 )
@@ -63,7 +63,7 @@ func NewContractPricesConsumer(ctx context.Context, rawUrl string, contractAddre
 }
 func (cpc *ContractPricesConsumer) Consume(ctx context.Context, feed <-chan *FeedItem) error {
 	for item := range feed {
-		logger.Info(ctx, "PriceContract: %+v", item)
+		app.Logger().Info(ctx, "PriceContract: %+v", item)
 		for _, price := range item.records {
 			nonce, err := cpc.client.PendingNonceAt(ctx, cpc.address)
 			if err != nil {
@@ -72,7 +72,7 @@ func (cpc *ContractPricesConsumer) Consume(ctx context.Context, feed <-chan *Fee
 			auth := cpc.opts
 			auth.Nonce = big.NewInt(int64(nonce))
 			if _, err := cpc.transactor.PutPrice(auth, price.Symbol, price.Currency, uint64(math.Round(price.Price*1000000)), uint64(price.TimeStamp.Unix())); err != nil {
-				logger.Error(ctx, "error contract tx: %s", err.Error())
+				app.Logger().Error(ctx, "error contract tx: %s", err.Error())
 				continue
 			}
 		}

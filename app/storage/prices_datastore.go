@@ -14,7 +14,7 @@ import (
 type dsPricesAsset struct {
 	Key       string            `datastore:"key"`
 	TimeStamp time.Time         `datastore:"timeStamp,noindex"`
-	Prices    []price.Value     `datastore:"prices_old,noindex"`
+	Prices    []price.Value     `datastore:"prices,noindex"`
 	History   []dsHistoryRecord `datastore:"history,noindex"`
 }
 type dsHistoryRecord struct {

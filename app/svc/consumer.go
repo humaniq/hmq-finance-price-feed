@@ -2,8 +2,7 @@ package svc
 
 import (
 	"context"
-
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 )
 
 type PriceFeedConsumerFunc func() chan PriceRecord
@@ -14,7 +13,7 @@ func ConsumerForDS(ps *PriceSvc) chan PriceRecord {
 	go func() {
 		for record := range queue {
 			if err := ps.SetSymbolPrice(ctx, record.Symbol, record.Currency, record.Price, record.Source); err != nil {
-				logger.Error(ctx, "[DS] error setting symbol price: %s", err)
+				app.Logger().Error(ctx, "[DS] error setting symbol price: %s", err)
 			}
 		}
 	}()
@@ -25,7 +24,7 @@ func ConsumerForLog() chan PriceRecord {
 	queue := make(chan PriceRecord)
 	go func() {
 		for record := range queue {
-			logger.Info(ctx, "got record: %+v", record)
+			app.Logger().Info(ctx, "got record: %+v", record)
 		}
 	}()
 	return queue

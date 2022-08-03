@@ -2,7 +2,7 @@ package price
 
 type Asset struct {
 	Name    string             `json:"name"`
-	Prices  map[string]Value   `json:"prices_old"`
+	Prices  map[string]Value   `json:"prices"`
 	History map[string]History `json:"history"`
 }
 
