@@ -41,18 +41,18 @@ func main() {
 	}
 	cfg, err := config.ApiConfigFromFile(configPath)
 	if err != nil {
-		app.Fatal(ctx, "error getting config: %s", err)
+		app.Logger().Fatal(ctx, "error getting config: %s", err)
 		return
 	}
 
-	app.Info(ctx, "STARTING WITH: %+v", cfg)
+	app.Logger().Info(ctx, "STARTING WITH: %+v", cfg)
 
 	gdsClient, err := gds.NewClient(ctx, cfg.Backend.GoogleDataStore.ProjectID(), cfg.Backend.GoogleDataStore.PriceAssetsKind())
 	if err != nil {
-		app.Fatal(ctx, "gdsClient init: %s", err)
+		app.Logger().Fatal(ctx, "gdsClient init: %s", err)
 		return
 	}
-	dsBackend := storage.NewPricesDSv2(gdsClient)
+	dsBackend := storage.NewPricesDS(gdsClient)
 
 	backend := storage.NewInMemory(time.Minute*10).Wrap(dsBackend).Warm(context.Background(), cfg.Assets, time.Minute*9)
 
@@ -90,9 +90,9 @@ func main() {
 	httpServer := &http.Server{Handler: router}
 
 	if sslHost != "" {
-		app.Debug(ctx, "SSL enabled")
+		app.Logger().Debug(ctx, "SSL enabled")
 		if sslCacheDir := os.Getenv("SSL_CACHE_DIR"); sslCacheDir != "" {
-			app.Debug(ctx, "SSL cache")
+			app.Logger().Debug(ctx, "SSL cache")
 			sslManager := &autocert.Manager{
 				Prompt: autocert.AcceptTOS,
 				HostPolicy: func(ctx context.Context, host string) error {
@@ -106,10 +106,10 @@ func main() {
 			httpServer.TLSConfig = &tls.Config{GetCertificate: sslManager.GetCertificate}
 		}
 		if sslDir := os.Getenv("SSL_DIR"); sslDir != "" {
-			app.Debug(ctx, "SSL existing certs")
+			app.Logger().Debug(ctx, "SSL existing certs")
 			cert, err := tls.LoadX509KeyPair(filepath.Join(sslDir, sslHost, "fullchain.pem"), filepath.Join(sslDir, sslHost, "privkey.pem"))
 			if err != nil {
-				app.Fatal(ctx, err.Error())
+				app.Logger().Fatal(ctx, err.Error())
 				return
 			}
 			httpServer.TLSConfig = &tls.Config{
@@ -122,10 +122,10 @@ func main() {
 		}
 		httpServer.Addr = listenOn
 
-		app.Info(ctx, "Prices Config: listening (SSL=%s) on %s", sslHost, listenOn)
+		app.Logger().Info(ctx, "Prices Config: listening (SSL=%s) on %s", sslHost, listenOn)
 
 		if err := httpServer.ListenAndServeTLS("", ""); err != nil {
-			app.Fatal(ctx, err.Error())
+			app.Logger().Fatal(ctx, err.Error())
 			return
 		}
 		return
@@ -137,10 +137,10 @@ func main() {
 
 	httpServer.Addr = listenOn
 
-	app.Info(ctx, "Prices Config: listening on %s", listenOn)
+	app.Logger().Info(ctx, "Prices Config: listening on %s", listenOn)
 
 	if err := httpServer.ListenAndServe(); err != nil {
-		app.Fatal(ctx, err.Error())
+		app.Logger().Fatal(ctx, err.Error())
 	}
 
 }

@@ -27,9 +27,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	backend := storage.NewPricesDSv2(gdsClient)
+	backend := storage.NewPricesDS(gdsClient)
 
-	currency := "usd"
+	currency := os.Getenv("CURRENCY")
 
 	cfg := struct {
 		Symbols map[string]string `yaml:"symbols"`

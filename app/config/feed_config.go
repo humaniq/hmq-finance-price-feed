@@ -69,7 +69,8 @@ func (cfc *CoingeckoFeedConfig) Every() time.Duration {
 }
 
 type PriceConsumers struct {
-	PriceOracles []PriceOracleContract `yaml:"price_oracle"`
+	PriceOracles     []PriceOracleContractConsumer `yaml:"price_oracle"`
+	StorageConsumers []StorageConsumer             `yaml:"price_storage"`
 }
 
 type Coingecko struct {

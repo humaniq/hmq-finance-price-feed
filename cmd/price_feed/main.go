@@ -73,6 +73,8 @@ func main() {
 
 	//feed := make(chan []price.Value)
 
+	storageWorker, err := prices.N
+
 	consumer := prices.NewConsumer()
 	consumer.AddWorker(&prices.LogWorker{})
 

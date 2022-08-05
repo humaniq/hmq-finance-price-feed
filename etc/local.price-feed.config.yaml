@@ -46,7 +46,6 @@ providers:
       symbols:
         - wbgl
         - busd
-        - usdt
       every: '1m'
 consumers:
   price_oracle:
@@ -61,7 +60,18 @@ consumers:
         - symbol: "busd"
           currency: "usd"
           percent_threshold: 0.25
+  price_storage:
+    - name: "Price Storage"
+      google_datastore:
+        project_id: "humaniq-168420|GDS_PROJECT_ID"
+        price_assets_kind: "testing_price_assets|GDS_PRICE_ASSETS_KIND"
+      thresholds:
+        default: 1
+        symbols:
+          wbgl: 5
+          busd: 0.25
+      time_diff: 1h
 coingecko:
   assets_path: "etc/coingecko.assets.yaml|COINGECKO_ASSETS_PATH"
 eth:
-  networks_path: "etc/eth.networks.yaml"
+  networks_path: "etc/eth.networks.yaml|ETH_NETWORKS_PATH"

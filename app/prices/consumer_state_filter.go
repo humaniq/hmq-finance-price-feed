@@ -49,10 +49,13 @@ func (cs *ConsumerState) TimeDeltaFunc(delta time.Duration) func(context.Context
 		return false
 	}
 }
-func (cs *ConsumerState) PercentThresholdFunc(thresholds map[string]float64, keyFn StateKeyFunc) func(ctx context.Context, value price.Value) bool {
+func (cs *ConsumerState) PercentThresholdFunc(thresholds map[string]float64, defaultThreshold float64, keyFn StateKeyFunc) func(ctx context.Context, value price.Value) bool {
 	return func(ctx context.Context, value price.Value) bool {
 		currentValue := cs.stateMap[cs.keyFn(value)]
 		percent := thresholds[keyFn(value)]
+		if percent == 0 {
+			percent = defaultThreshold
+		}
 		thresholdDiff := currentValue.Price * percent / 100
 		currentDiff := value.Price - currentValue.Price
 		if currentDiff < 0 {

@@ -2,8 +2,8 @@ package svc
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
 	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 )
 
@@ -37,7 +37,7 @@ func (ps *Prices) GetPrices(ctx context.Context, symbols []string, currencies []
 		if err != nil {
 			continue
 		}
-		pricesGetter := state.NewAssetGetter(prices)
+		pricesGetter := price.NewAssetGetter(prices)
 		for _, symbol := range symbols {
 			value, err := pricesGetter.GetPrice(ctx, symbol, currency)
 			if err != nil {

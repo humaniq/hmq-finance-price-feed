@@ -18,7 +18,7 @@ type PriceOracleContractToken struct {
 	PercentThreshold float64 `yaml:"percent_threshold"`
 }
 
-type PriceOracleContract struct {
+type PriceOracleContractConsumer struct {
 	NetworkUid         string                     `yaml:"network_uid"`
 	Name               string                     `yaml:"name"`
 	ContractAddressHex string                     `yaml:"contract_address_hex"`
