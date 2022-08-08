@@ -16,7 +16,7 @@ func (ar *AssetRecord) WithHistory(history History) *AssetRecord {
 }
 func (ar *AssetRecord) Commit(value Value) {
 	ar.Price = value
-	ar.History = ar.History.AddRecord(HistoryRecord{
+	ar.History = ar.History.AddRecords(HistoryRecord{
 		TimeStamp: value.TimeStamp,
 		Price:     value.Price,
 	})
