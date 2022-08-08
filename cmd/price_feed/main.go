@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"os"
 	"strconv"
 )
@@ -73,18 +77,69 @@ func main() {
 
 	//feed := make(chan []price.Value)
 
-	storageWorker, err := prices.N
-
 	consumer := prices.NewConsumer()
 	consumer.AddWorker(&prices.LogWorker{})
 
-	//for _, oracleCfg := range cfg.Consumers.PriceOracles {
-	//	oracle, err := prices.NewPriceOracle(oracleCfg, cfg.EthNetworks.Networks)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//	consumer.AddWorker(oracle)
-	//}
+	for _, storageCfg := range cfg.Consumers.StorageConsumers {
+		ds, err := gds.NewClient(ctx, storageCfg.Datastore.ProjectID(), storageCfg.Datastore.PriceAssetsKind())
+		if err != nil {
+			app.Logger().Fatal(ctx, "FAIL GETTING Google Datastore Backend")
+			return
+		}
+		consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey)
+		storageWorker := prices.NewConsumerWorkerFilterWpapper(prices.AnyOf(
+			consumerState.TimeDeltaFunc(storageCfg.TimeDelta()),
+			consumerState.PercentThresholdFunc(storageCfg.Thresholds.Symbols, storageCfg.Thresholds.Default, prices.SymbolStateKey),
+		)).Wrap(prices.NewStorageWriteWorker(storage.NewPricesDS(ds)))
+		consumer.AddWorker(storageWorker)
+	}
+	for _, oracleCfg := range cfg.Consumers.PriceOracles {
+		network, found := cfg.EthNetworks.Networks[oracleCfg.NetworkUid]
+		if !found {
+			app.Logger().Fatal(ctx, "FAIL GETTING NETWORK %s", oracleCfg.NetworkUid)
+			return
+		}
+		conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, oracleCfg.ClientPrivateKey, 30000)
+		if err != nil {
+			app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s", oracleCfg.NetworkUid)
+			return
+		}
+		oracleWriter, err := ethereum.NewPriceOracleWriter(conn, oracleCfg.ContractAddressHex)
+		if err != nil {
+			app.Logger().Fatal(ctx, "FAIL CONNECTING CONTRACT %s", oracleCfg.ContractAddressHex)
+			return
+		}
+		tokenMap := make(map[string]config.EthNetworkSymbolContract)
+		thresholdsMap := make(map[string]float64)
+		tokenValues := make([]price.Value, 0, len(oracleCfg.Tokens))
+		for _, token := range oracleCfg.Tokens {
+			tokenCfg, found := network.Symbols[token.Symbol]
+			if !found {
+				app.Logger().Fatal(ctx, "FAIL FINDING TOKEN ADDRESS for %s in %s", token.Symbol, network.Name)
+				return
+			}
+			if token.PercentThreshold > 0 {
+				thresholdsMap[fmt.Sprintf("%s-%s", token.Symbol, token.Currency)] = token.PercentThreshold
+			} else {
+				app.Logger().Fatal(ctx, "PERCENT THRESHOLD IS 0 for (%s)%s-%s", network.Name, token.Symbol, token.Currency)
+				return
+			}
+			tokenMap[token.Symbol] = config.EthNetworkSymbolContract{
+				AddressHex: tokenCfg.AddressHex,
+				Decimals:   tokenCfg.Decimals,
+			}
+			tokenValues = append(tokenValues, price.Value{
+				Symbol:   token.Symbol,
+				Currency: token.Currency,
+			})
+		}
+		consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey).WithValues(tokenValues...)
+		oracle := prices.NewConsumerWorkerFilterWpapper(prices.AllOf(
+			consumerState.ValueExists,
+			consumerState.PercentThresholdFunc(thresholdsMap, 0, prices.SymbolCurrencyStateKey),
+		)).Wrap(prices.NewPriceOracleWriteWorker(tokenMap, oracleWriter))
+		consumer.AddWorker(oracle)
+	}
 
 	if err := consumer.Consume(ctx, providerPool.Feed()); err != nil {
 		app.Logger().Fatal(ctx, "CONSUMER FAILED: %s", err)

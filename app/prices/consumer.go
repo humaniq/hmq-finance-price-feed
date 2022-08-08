@@ -2,12 +2,13 @@ package prices
 
 import (
 	"context"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"sync"
 )
 
 type ConsumerWorker interface {
-	Work(ctx context.Context, values []price.Value)
+	Work(ctx context.Context, values []price.Value) error
 }
 
 type Consumer struct {
@@ -38,7 +39,9 @@ func (c *Consumer) Run(ctx context.Context, in <-chan []price.Value) {
 		for _, worker := range c.workers {
 			go func(w ConsumerWorker) {
 				defer wg.Done()
-				w.Work(ctx, values)
+				if err := w.Work(ctx, values); err != nil {
+					app.Logger().Error(ctx, "WORKER ERROR: %s", err)
+				}
 			}(worker)
 		}
 		wg.Wait()

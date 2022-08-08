@@ -42,6 +42,7 @@ consumers:
         - symbol: "busd"
           currency: "usd"
           percent_threshold: 0.25
+
 coingecko:
   assets_path: "/etc/hmq/coingecko.assets.yaml"
 eth:

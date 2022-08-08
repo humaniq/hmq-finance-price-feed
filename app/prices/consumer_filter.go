@@ -41,12 +41,15 @@ func (cwfw *ConsumerWorkerFilterWrapper) Wrap(worker ConsumerWorker) *ConsumerWo
 	cwfw.worker = worker
 	return cwfw
 }
-func (cwfw *ConsumerWorkerFilterWrapper) Work(ctx context.Context, values []price.Value) {
+func (cwfw *ConsumerWorkerFilterWrapper) Work(ctx context.Context, values []price.Value) error {
 	var filtered []price.Value
 	for _, value := range values {
 		if cwfw.filterFunc(ctx, value) {
 			filtered = append(filtered, value)
 		}
 	}
-	cwfw.worker.Work(ctx, filtered)
+	if len(filtered) == 0 {
+		return nil
+	}
+	return cwfw.worker.Work(ctx, filtered)
 }

@@ -9,9 +9,10 @@ import (
 type LogWorker struct {
 }
 
-func (lw *LogWorker) Work(ctx context.Context, values []price.Value) {
+func (lw *LogWorker) Work(ctx context.Context, values []price.Value) error {
 	ctx = context.WithValue(ctx, "tag", "LOG_WORKER")
 	for _, value := range values {
 		app.Logger().Info(ctx, "- %+v", value)
 	}
+	return nil
 }
