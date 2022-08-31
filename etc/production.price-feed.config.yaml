@@ -24,11 +24,35 @@ providers:
   coingecko:
     - name: Savy-Price-Oracle
       currencies:
+        - btc
+        - eth
         - usd
+        - eur
+        - rub
+        - bnb
+        - cny
+        - jpy
       symbols:
         - wbgl
         - busd
-      every: '15m'
+      every: '5m'
+    - name: Stables
+      currencies:
+        - btc
+        - eth
+        - usd
+        - eur
+        - rub
+        - bnb
+        - cny
+        - jpy
+      symbols:
+        - usdt
+        - usdc
+        - eth
+        - hmq
+        - btc
+      every: '4m'
 consumers:
   price_oracle:
     - name: "BSC-Main Price-Oracle"
@@ -42,8 +66,18 @@ consumers:
         - symbol: "busd"
           currency: "usd"
           percent_threshold: 0.25
-
+  price_storage:
+    - name: "Datastore"
+      google_datastore:
+        project_id: "humaniq-168420"
+        price_assets_kind: "develop_price_assets"
+      thresholds:
+        default: 1
+        symbols:
+          busd: 0.25
+          wbgl: 5
+      time_diff: "1h"
 coingecko:
   assets_path: "/etc/hmq/coingecko.assets.yaml"
 eth:
-  networks_path: "/etc/hmq/eth.networks.yaml"
+  networks_path: "/etc/hmq/eth.networks.local.yaml"

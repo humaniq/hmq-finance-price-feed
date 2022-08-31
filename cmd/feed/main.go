@@ -101,7 +101,7 @@ func main() {
 		}
 		conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, oracleCfg.ClientPrivateKey, 30000)
 		if err != nil {
-			app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s", oracleCfg.NetworkUid)
+			app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s: %s", oracleCfg.NetworkUid, err)
 			return
 		}
 		oracleWriter, err := ethereum.NewPriceOracleWriter(conn, oracleCfg.ContractAddressHex)

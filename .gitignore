@@ -2,3 +2,4 @@
 /.local/
 /vendor/
 .env
+/etc/eth.networks.local.yaml

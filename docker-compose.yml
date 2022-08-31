@@ -12,7 +12,7 @@ services:
       - "ENVIRONMENT=${ENVIRONMENT:-compose}"
       - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
       - "BSC_ORACLE_PRIVATE_KEY=${BSC_ORACLE_PRIVATE_KEY:-}"
-      - "CONFIG_PATH=${CONFIG_PATH:-/etc/hmq/production.price-feed.config.yaml}"
+      - "CONFIG_PATH=${FEED_CONFIG_PATH:-/etc/hmq/compose.price-feed.config.yaml}"
       - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
       - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
       - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
