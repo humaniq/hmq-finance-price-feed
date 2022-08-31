@@ -1,10 +1,10 @@
 currencies:
   btc: btc
   eth: eth
+  bnb: bnb
   usd: usd
   eur: eur
   rub: rub
-  bnb: bnb
   cny: cny
   jpy: jpy
 symbols:
@@ -298,4 +298,3 @@ symbols:
   frax: frax-wormhole
   gro: growth-defi
   ring: the-one-ring
-

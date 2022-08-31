@@ -15,7 +15,7 @@ type CoinGecko struct {
 	currencyMapper map[string]string
 }
 
-func NewCoingecko(assets *config.Assets) *CoinGecko {
+func NewCoingecko(assets *config.CoinGeckoAssets) *CoinGecko {
 	return &CoinGecko{
 		symbolMapper:   assets.Symbols,
 		currencyMapper: assets.Currencies,

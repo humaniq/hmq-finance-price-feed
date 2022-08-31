@@ -21,6 +21,11 @@ currencies:
   frw: usd
   krw: usd
 providers:
+  pancakeswap:
+    - name: savy
+      symbols:
+        - wbgl
+        - busd
   coingecko:
     - name: Savy-Price-Oracle
       currencies:

@@ -1,0 +1,91 @@
+assets:
+  - btc
+  - eth
+  - bnb
+  - usd
+  - eur
+  - rub
+  - cny
+  - jpy
+currencies:
+  btc: btc
+  eth: eth
+  bnb: bnb
+  usd: usd
+  eur: eur
+  rub: rub
+  cny: cny
+  jpy: jpy
+  tzs: usd
+  ugx: usd
+  rwf: usd
+  krw: usd
+providers:
+  - name: PancakeSwap Savy
+    every: 1m
+    pancakeswap:
+      symbols:
+        - wbgl
+        - busd
+      asset_mapper: usd
+  - name: CoinGecko Stables
+    every: 1m
+    coingecko:
+      currencies:
+        - btc
+        - eth
+        - usd
+        - eur
+        - rub
+        - bnb
+        - cny
+        - jpy
+      symbols:
+        - eth
+        - hmq
+        - btc
+        - usdt
+        - usdc
+        - hmq
+  - name: FIAT
+    every: 1m
+    geocurrency:
+      symbols:
+        USD: usd
+        EUR: eur
+        RUB: rub
+        CNY: cny
+        JPY: jpy
+        TZS: tzs
+        UGX: ugx
+        KRW: krw
+        RWF: rwf
+consumers:
+  - name: BSC PriceOracle
+    tokens:
+      - symbol: wbgl
+        currency: usd
+      - symbol: busd
+        currency: usd
+    price_oracle:
+      network_key: BSC
+      contract_address_hex: 0x5641d752955C089Df17D04A3ac1EFD5Ba590fB7b
+      client_private_key: "|BSC_ORACLE_PRIVATE_KEY"
+  - name: Datastore PriceStorage
+    google_datastore:
+      project_id: humaniq-168420
+      price_assets_kind: develop_price_assets
+thresholds:
+  default:
+    percent_threshold: 1
+    time_threshold: 1h
+  custom:
+    - symbol: wbgl
+      percent_threshold: 5
+    - symbol: busd
+      percent_threshold: 0.25
+asset_files:
+  coingecko:
+    - /usr/local/share/hmq/coingecko.assets.yaml
+  eth:
+    - /usr/local/share/hmq/network.bsc.assets.yaml

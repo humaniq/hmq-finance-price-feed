@@ -2,13 +2,19 @@ package config
 
 import "github.com/humaniq/hmq-finance-price-feed/pkg/application"
 
-type Assets struct {
+type CoinGeckoAssets struct {
 	Currencies map[string]string `yaml:"currencies"`
 	Symbols    map[string]string `yaml:"symbols"`
 }
 
-func AssetsFromFile(path string) (*Assets, error) {
-	var config Assets
+func NewCoinGeckoAssets() *CoinGeckoAssets {
+	return &CoinGeckoAssets{
+		Currencies: make(map[string]string),
+		Symbols:    make(map[string]string),
+	}
+}
+func AssetsFromFile(path string) (*CoinGeckoAssets, error) {
+	var config CoinGeckoAssets
 	if err := application.ReadFromYamlFile(path, &config); err != nil {
 		return nil, err
 	}

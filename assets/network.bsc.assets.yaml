@@ -1,0 +1,11 @@
+key: BSC
+name: Binance Smart Chain
+raw_url: "https://bsc-dataseed1.binance.org/"
+chain_id: 56
+symbols:
+  wbgl:
+    address_hex: "0x2bA64EFB7A4Ec8983E22A49c81fa216AC33f383A"
+    decimals: 18
+  busd:
+    address_hex: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
+    decimals: 18

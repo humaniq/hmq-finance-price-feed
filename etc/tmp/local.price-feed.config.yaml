@@ -21,6 +21,12 @@ currencies:
   frw: usd
   krw: usd
 providers:
+  pancakeswap:
+    - name: savy
+      symbols:
+        - wbgl
+        - busd
+      mapper: usd
   coingecko:
     - name: "HMQ+Stables"
       currencies:
