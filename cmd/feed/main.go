@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"os"
 	"strconv"
 
@@ -91,83 +95,60 @@ func main() {
 		}
 	}
 
-	//if len(cfg.Providers.Coingeckos) > 0 {
-	//	assets, err := config.AssetsFromFile(cfg.Coingecko.AssetsPath)
-	//	if err != nil {
-	//		app.Logger().Fatal(ctx, "FAIL GETTING COINGECKO ASSETS: %s", err)
-	//		return
-	//	}
-	//	cg := prices.NewCoingecko(assets)
-	//	for _, gecko := range cfg.Providers.Coingeckos {
-	//		providerPool.AddProvider(prices.NewProvider(gecko.Name, cg.GetterFunc(gecko.Symbols, gecko.Currencies), gecko.Every()))
-	//	}
-	//}
+	consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey)
 
-	//feed := make(chan []price.Value)
-
-	consumer := prices.NewConsumer()
+	consumer := prices.NewConsumer().WithFilters(
+		prices.AnyOf(
+			consumerState.TimeDeltaThresholdsFunc(cfg.Thresholds),
+			consumerState.PercentThresholdsFunc(cfg.Thresholds),
+		),
+	)
 	consumer.AddWorker(&prices.LogWorker{})
 
-	//for _, storageCfg := range cfg.Consumers.StorageConsumers {
-	//	ds, err := gds.NewClient(ctx, storageCfg.Datastore.ProjectID(), storageCfg.Datastore.PriceAssetsKind())
-	//	if err != nil {
-	//		app.Logger().Fatal(ctx, "FAIL GETTING Google Datastore Backend")
-	//		return
-	//	}
-	//	consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey)
-	//	storageWorker := prices.NewConsumerWorkerFilterWpapper(prices.AnyOf(
-	//		consumerState.TimeDeltaFunc(storageCfg.TimeDelta()),
-	//		consumerState.PercentThresholdFunc(storageCfg.Thresholds.Symbols, storageCfg.Thresholds.Default, prices.SymbolStateKey),
-	//	)).Wrap(prices.NewStorageWriteWorker(storage.NewPricesDS(ds)))
-	//	consumer.AddWorker(storageWorker)
-	//}
-	//for _, oracleCfg := range cfg.Consumers.PriceOracles {
-	//	network, found := cfg.EthNetworks.Networks[oracleCfg.NetworkUid]
-	//	if !found {
-	//		app.Logger().Fatal(ctx, "FAIL GETTING NETWORK %s", oracleCfg.NetworkUid)
-	//		return
-	//	}
-	//	conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, oracleCfg.ClientPrivateKey, 30000)
-	//	if err != nil {
-	//		app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s: %s", oracleCfg.NetworkUid, err)
-	//		return
-	//	}
-	//	oracleWriter, err := ethereum.NewPriceOracleWriter(conn, oracleCfg.ContractAddressHex)
-	//	if err != nil {
-	//		app.Logger().Fatal(ctx, "FAIL CONNECTING CONTRACT %s", oracleCfg.ContractAddressHex)
-	//		return
-	//	}
-	//	tokenMap := make(map[string]config.EthNetworkSymbolContract)
-	//	thresholdsMap := make(map[string]float64)
-	//	tokenValues := make([]price.Value, 0, len(oracleCfg.Tokens))
-	//	for _, token := range oracleCfg.Tokens {
-	//		tokenCfg, found := network.Symbols[token.Symbol]
-	//		if !found {
-	//			app.Logger().Fatal(ctx, "FAIL FINDING TOKEN ADDRESS for %s in %s", token.Symbol, network.Name)
-	//			return
-	//		}
-	//		if token.PercentThreshold > 0 {
-	//			thresholdsMap[fmt.Sprintf("%s-%s", token.Symbol, token.Currency)] = token.PercentThreshold
-	//		} else {
-	//			app.Logger().Fatal(ctx, "PERCENT THRESHOLD IS 0 for (%s)%s-%s", network.Name, token.Symbol, token.Currency)
-	//			return
-	//		}
-	//		tokenMap[token.Symbol] = config.EthNetworkSymbolContract{
-	//			AddressHex: tokenCfg.AddressHex,
-	//			Decimals:   tokenCfg.Decimals,
-	//		}
-	//		tokenValues = append(tokenValues, price.Value{
-	//			Symbol:   token.Symbol,
-	//			Currency: token.Currency,
-	//		})
-	//	}
-	//	consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey).WithValues(tokenValues...)
-	//	oracle := prices.NewConsumerWorkerFilterWpapper(prices.AllOf(
-	//		consumerState.ValueExists,
-	//		consumerState.PercentThresholdFunc(thresholdsMap, 0, prices.SymbolCurrencyStateKey),
-	//	)).Wrap(prices.NewPriceOracleWriteWorker(tokenMap, oracleWriter))
-	//	consumer.AddWorker(oracle)
-	//}
+	for _, storageCfg := range cfg.Consumers {
+		if storageCfg.GoogleDataStore != nil {
+			ds, err := gds.NewClient(ctx, storageCfg.GoogleDataStore.ProjectID(), storageCfg.GoogleDataStore.PriceAssetsKind())
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL GETTING Google Datastore Backend: %s", err)
+				return
+			}
+			storageWorker := prices.NewStorageWriteWorker(storage.NewPricesDS(ds))
+			consumer.AddWorker(storageWorker)
+		}
+		if storageCfg.PriceOracle != nil {
+			network, found := cfg.AssetsData.EthNetworks[storageCfg.PriceOracle.NetworkKey]
+			if !found {
+				app.Logger().Fatal(ctx, "FAIL GETTING NETWORK %s", storageCfg.PriceOracle.NetworkKey)
+				return
+			}
+			conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, storageCfg.PriceOracle.ClientPrivateKey, 30000)
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s: %s", storageCfg.PriceOracle.NetworkKey, err)
+				return
+			}
+			oracleWriter, err := ethereum.NewPriceOracleWriter(conn, storageCfg.PriceOracle.ContractAddressHex)
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL CONNECTING CONTRACT %s", storageCfg.PriceOracle.ContractAddressHex)
+				return
+			}
+			tokenValues := make([]price.Value, 0, len(storageCfg.Tokens))
+			tokenMap := make(map[string]config.EthNetworkSymbolContract)
+			for _, token := range storageCfg.Tokens {
+				tokenValues = append(tokenValues, price.Value{
+					Symbol:   token.Symbol,
+					Currency: token.Currency,
+				})
+
+				tokenMap[token.Symbol] = network.Symbols[token.Symbol]
+			}
+
+			oracleState := prices.NewConsumerState(prices.SymbolCurrencyStateKey).WithValues(tokenValues...)
+			oracle := prices.NewConsumerWorkerFilterWpapper(
+				oracleState.ValueExists,
+			).Wrap(prices.NewPriceOracleWriteWorker(tokenMap, oracleWriter))
+			consumer.AddWorker(oracle)
+		}
+	}
 
 	if err := consumer.Consume(ctx, providerPool.Feed()); err != nil {
 		app.Logger().Fatal(ctx, "CONSUMER FAILED: %s", err)

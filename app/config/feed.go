@@ -29,6 +29,14 @@ type Threshold struct {
 	TimeThreshold    string  `yaml:"time_threshold,omitempty"`
 }
 
+func (t *Threshold) TimeDelta() time.Duration {
+	duration, err := time.ParseDuration(t.TimeThreshold)
+	if err != nil {
+		return 0
+	}
+	return duration
+}
+
 type AssetFiles struct {
 	CoinGecko []string `yaml:"coingecko"`
 	Eth       []string `yaml:"eth"`
