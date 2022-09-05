@@ -2,8 +2,6 @@ package prices
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
 	"github.com/humaniq/hmq-finance-price-feed/app/price"
@@ -22,16 +20,18 @@ func NewPriceOracleWriteWorker(symbols map[string]config.EthNetworkSymbolContrac
 	}
 }
 func (poww *PriceOracleWriteWorker) Work(ctx context.Context, values []price.Value) error {
-	for _, value := range values {
-		symbol, found := poww.symbols[value.Symbol]
-		if !found {
-			return errors.New(fmt.Sprintf("symbol address not found for %s", value.Symbol))
-		}
-		txId, err := poww.writer.SetDirectPrice(ctx, symbol.AddressHex, value.Price, symbol.Decimals)
-		if err != nil {
-			return err
-		}
-		app.Logger().Info(context.WithValue(ctx, "TxID", txId), "[PriceOracleWorker] %f price written for %s=[%s]", value.Price, value.Symbol, symbol.AddressHex)
-	}
+	app.Logger().Info(ctx, "ORACLE: %+v", values)
+
+	//for _, value := range values {
+	//	symbol, found := poww.symbols[value.Symbol]
+	//	if !found {
+	//		return errors.New(fmt.Sprintf("symbol address not found for %s", value.Symbol))
+	//	}
+	//	txId, err := poww.writer.SetDirectPrice(ctx, symbol.AddressHex, value.Price, symbol.Decimals)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	app.Logger().Info(context.WithValue(ctx, "TxID", txId), "[PriceOracleWorker] %f price written for %s=[%s]", value.Price, value.Symbol, symbol.AddressHex)
+	//}
 	return nil
 }

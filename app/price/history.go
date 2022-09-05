@@ -1,7 +1,6 @@
 package price
 
 import (
-	"log"
 	"sort"
 	"time"
 )
@@ -67,12 +66,10 @@ func (h History) AddRecords(recalculate bool, records ...HistoryRecord) History 
 }
 func historyWeekIndex(start time.Time, current time.Time) (time.Time, int) {
 	index := current.Sub(start) / time.Hour / 3
-	log.Printf("weekIndex: %v=>%v = %d\n", start, current, index)
 	return start.Add(time.Hour * 3 * index), int(index)
 }
 func historyMonthIndex(start time.Time, current time.Time) (time.Time, int) {
 	index := current.Sub(start) / time.Hour / 6
-	log.Printf("monthIndex: %v=>%v = %d\n", start, current, index)
 	return start.Add(time.Hour * 6 * index), int(index)
 }
 

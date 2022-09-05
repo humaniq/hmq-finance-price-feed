@@ -34,7 +34,46 @@ func (cs *ConsumerState) WithValues(values ...price.Value) *ConsumerState {
 	}
 	return cs
 }
-
+func (cs *ConsumerState) Work(ctx context.Context, values []price.Value) error {
+	for _, value := range values {
+		cs.stateMap[cs.keyFn(value)] = value
+	}
+	return nil
+}
+func (cs *ConsumerState) EnrichFunc(symbols []string, currency string, assets []string) func(ctx context.Context, value price.Value) []price.Value {
+	symbolToEnrich := make(map[string]bool)
+	for _, symbol := range symbols {
+		symbolToEnrich[symbol] = true
+	}
+	return func(ctx context.Context, value price.Value) []price.Value {
+		result := make([]price.Value, 0, len(assets))
+		result = append(result, value)
+		if value.Currency != currency {
+			return result
+		}
+		for _, asset := range assets {
+			if asset == value.Currency {
+				continue
+			}
+			mappingValue := price.Value{
+				Symbol:   asset,
+				Currency: currency,
+			}
+			mapValue, found := cs.stateMap[cs.keyFn(mappingValue)]
+			if !found {
+				continue
+			}
+			result = append(result, price.Value{
+				TimeStamp: value.TimeStamp,
+				Source:    value.Source,
+				Symbol:    value.Symbol,
+				Currency:  asset,
+				Price:     value.Price / mapValue.Price,
+			})
+		}
+		return result
+	}
+}
 func (cs *ConsumerState) ValueExists(ctx context.Context, value price.Value) bool {
 	if _, found := cs.stateMap[cs.keyFn(value)]; found {
 		return true
@@ -61,6 +100,7 @@ func NewThresholdTimeDeltas(deltas config.Thresholds) *ThresholdTimeDeltas {
 	for _, threshold := range deltas.Custom {
 		mapper[fmt.Sprintf("%s:%s", threshold.Symbol, threshold.Currency)] = threshold.TimeDelta()
 	}
+	//app.Logger().Info(context.Background(), "THRESHOLD_TIME_DELTAS: %+v", mapper)
 	return &ThresholdTimeDeltas{mapper: mapper, defaultDelta: deltas.Default.TimeDelta()}
 }
 func (td *ThresholdTimeDeltas) TimeDelta(value price.Value) time.Duration {
@@ -79,11 +119,11 @@ func (cs *ConsumerState) TimeDeltaThresholdsFunc(deltas config.Thresholds) func(
 	thresholds := NewThresholdTimeDeltas(deltas)
 	return func(ctx context.Context, value price.Value) bool {
 		delta := thresholds.TimeDelta(value)
+		//app.Logger().Info(context.Background(), "TIME_DELTA: %+v => %v", value, delta)
 		if delta == 0 {
 			return false
 		}
-		currentValue := cs.stateMap[cs.keyFn(value)]
-		if currentValue.TimeStamp.Add(delta).Before(time.Now()) {
+		if currentValue, found := cs.stateMap[cs.keyFn(value)]; found && currentValue.TimeStamp.Add(delta).Before(time.Now()) {
 			return true
 		}
 		return false
@@ -100,6 +140,7 @@ func NewThresholdPercentDeltas(deltas config.Thresholds) *ThresholdPercentDeltas
 	for _, threshold := range deltas.Custom {
 		mapper[fmt.Sprintf("%s:%s", threshold.Symbol, threshold.Currency)] = threshold.PercentThreshold
 	}
+	//app.Logger().Info(context.Background(), "THRESHOLD_PERCENTS: %+v", mapper)
 	return &ThresholdPercentDeltas{
 		mapper:       mapper,
 		defaultDelta: deltas.Default.PercentThreshold,
@@ -121,6 +162,7 @@ func (cs *ConsumerState) PercentThresholdsFunc(deltas config.Thresholds) func(ct
 	thresholds := NewThresholdPercentDeltas(deltas)
 	return func(ctx context.Context, value price.Value) bool {
 		percent := thresholds.PercentDelta(value)
+		//app.Logger().Info(context.Background(), "PERCENT_DELTA: %+v => %v", value, percent)
 		currentValue := cs.stateMap[cs.keyFn(value)]
 		thresholdDiff := currentValue.Price * percent / 100
 		currentDiff := value.Price - currentValue.Price

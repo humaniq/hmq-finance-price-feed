@@ -35,7 +35,7 @@ func main() {
 	}
 	ctx := context.Background()
 
-	configPath := os.Getenv("CONFIG_FILE_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "/etc/hmq/price-api.config.yaml"
 	}
@@ -79,7 +79,7 @@ func main() {
 			r.Group(func(r chi.Router) {
 				r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("symbol", api.CtxSymbolKey, httpapi.CaseToLower, ",", []string{"eth"}))
 				r.Use(api.MustHaveStringListInQueryOrDefaultsMiddlewareFunc("currency", api.CtxCurrencyKey, httpapi.CaseToLower, ",", []string{"eth", "usd", "eur", "rub"}))
-				r.Get("/prices_old/list", api.GetPricesFunc(svc.NewPrices(backend).WithMapping(cfg.Currencies)))
+				r.Get("/prices/list", api.GetPricesFunc(svc.NewPrices(backend).WithMapping(cfg.Currencies)))
 			})
 		})
 	})

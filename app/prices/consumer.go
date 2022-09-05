@@ -12,10 +12,11 @@ type ConsumerWorker interface {
 }
 
 type Consumer struct {
-	done     chan interface{}
-	workers  []ConsumerWorker
-	enriches []ConsumerEnrichFunc
-	filters  []ConsumerFilterFunc
+	done         chan interface{}
+	workers      []ConsumerWorker
+	enriches     []ConsumerEnrichFunc
+	filters      []ConsumerFilterFunc
+	stateWorkers []ConsumerWorker
 }
 
 func NewConsumer() *Consumer {
@@ -23,6 +24,9 @@ func NewConsumer() *Consumer {
 }
 func (c *Consumer) AddWorker(w ConsumerWorker) {
 	c.workers = append(c.workers, w)
+}
+func (c *Consumer) AddStateWorker(w ConsumerWorker) {
+	c.stateWorkers = append(c.stateWorkers, w)
 }
 
 func (c *Consumer) Consume(ctx context.Context, in <-chan []price.Value) error {
@@ -70,5 +74,10 @@ func (c *Consumer) Run(ctx context.Context, in <-chan []price.Value) {
 			}(worker)
 		}
 		wg.Wait()
+		for _, stWorker := range c.stateWorkers {
+			if err := stWorker.Work(ctx, filteredValues); err != nil {
+				app.Logger().Error(ctx, "ERROR STATE WORKAROUND: %s", err)
+			}
+		}
 	}
 }

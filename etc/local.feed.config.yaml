@@ -22,14 +22,14 @@ currencies:
   krw: usd
 providers:
   - name: PancakeSwap Savy
-    every: 10s
+    every: 20s
     pancakeswap:
       symbols:
         - wbgl
         - busd
       asset_mapper: usd
   - name: CoinGecko Stables
-    every: 15s
+    every: 10s
     coingecko:
       currencies:
         - btc
@@ -48,7 +48,7 @@ providers:
         - usdc
         - hmq
   - name: FIAT
-    every: 20s
+    every: 15s
     geocurrency:
       api_key: "|GETGEO_API_KEY"
       symbols:

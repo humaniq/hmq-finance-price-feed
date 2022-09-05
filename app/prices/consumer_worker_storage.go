@@ -14,7 +14,10 @@ type StorageWriteWorker struct {
 }
 
 func NewStorageWriteWorker(backend storage.Prices) *StorageWriteWorker {
-	return &StorageWriteWorker{backend: backend}
+	return &StorageWriteWorker{
+		backend: backend,
+		items:   make(map[string]*price.Asset),
+	}
 }
 
 func (sww *StorageWriteWorker) Work(ctx context.Context, values []price.Value) error {
