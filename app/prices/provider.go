@@ -48,7 +48,7 @@ func (p *Provider) Run(ctx context.Context, ticker *time.Ticker, out chan<- []pr
 	for range ticker.C {
 		values, err := p.fn(ctx)
 		if err != nil {
-			app.Logger().Error(ctx, "ERROR GETTING COINGECKO DATA FOR %s: %s", p.name, err)
+			app.Logger().Error(ctx, "ERROR GETTING PRICE DATA FOR %s: %s", p.name, err)
 			continue
 		}
 		out <- values

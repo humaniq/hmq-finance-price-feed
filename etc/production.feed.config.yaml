@@ -342,7 +342,7 @@ providers:
         - yop
         - zefu
   - name: FIAT
-    every: 5m
+    every: 10m
     geocurrency:
       api_key: "|GETGEO_API_KEY"
       symbols:
