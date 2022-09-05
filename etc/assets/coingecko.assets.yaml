@@ -9,8 +9,6 @@ currencies:
   jpy: jpy
 symbols:
   usdt: tether
-  busd: busd
-  wbgl: bitgesell
   eth: ethereum
   glq: graphlinq-protocol
   minds: minds

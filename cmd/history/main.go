@@ -24,7 +24,7 @@ func main() {
 
 	ctx := context.Background()
 
-	gdsClient, err := gds.NewClient(ctx, "humaniq-168420", "hmq_price_assets")
+	gdsClient, err := gds.NewClient(ctx, "humaniq-168420", "production_price_assets")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func main() {
 		Symbols: make(map[string]string),
 	}
 
-	file, err := os.Open("etc/coingecko.assets.yaml")
+	file, err := os.Open("etc/assets/coingecko.assets.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
