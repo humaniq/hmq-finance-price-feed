@@ -121,13 +121,11 @@ func main() {
 			consumer.AddWorker(storageWorker)
 		}
 		if storageCfg.PriceOracle != nil {
-			app.Logger().Info(ctx, "PRICE_ORACLE: %+v", storageCfg.PriceOracle)
 			network, found := cfg.AssetsData.EthNetworks[storageCfg.PriceOracle.NetworkKey]
 			if !found {
 				app.Logger().Fatal(ctx, "FAIL GETTING NETWORK %s", storageCfg.PriceOracle.NetworkKey)
 				return
 			}
-			app.Logger().Info(ctx, "NETWORK: %+v", network)
 			conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, storageCfg.PriceOracle.ClientPrivateKey, 30000)
 			if err != nil {
 				app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s: %s", storageCfg.PriceOracle.NetworkKey, err)

@@ -369,7 +369,7 @@ consumers:
   - name: Datastore PriceStorage
     google_datastore:
       project_id: humaniq-168420
-      price_assets_kind: develop_price_assets
+      price_assets_kind: production_price_assets
   - name: BSC PriceOracle
     tokens:
       - symbol: wbgl
