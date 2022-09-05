@@ -41,11 +41,3 @@ func overrideGDSFromEnv(gds *GoogleDataStore) {
 	gds.ProjectIdString = application.StringsValueEnvOverride(gds.ProjectIdString, "DATASTORE_PROJECT_ID")
 	gds.PriceAssetsRecordKindString = application.StringsValueEnvOverride(gds.PriceAssetsRecordKindString, "DATASTORE_PRICE_ASSETS_KIND")
 }
-
-//func (sc *StorageConsumer) TimeDelta() time.Duration {
-//	duration, err := time.ParseDuration(sc.TimeDiffStr)
-//	if err != nil {
-//		return 0
-//	}
-//	return duration
-//}

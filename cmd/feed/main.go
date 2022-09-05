@@ -71,6 +71,24 @@ func main() {
 				prices.NewProvider(providerCfg.Name, prices.GeoCurrencyProviderFunc(providerCfg.GeoCurrency), providerCfg.Every()),
 			)
 		}
+		if providerCfg.CoinGecko != nil {
+			providerPool.AddProvider(
+				prices.NewProvider(
+					providerCfg.Name,
+					prices.NewCoingecko(cfg.AssetsData.CoinGecko).GetterFunc(providerCfg.CoinGecko.Symbols, providerCfg.CoinGecko.Currencies),
+					providerCfg.Every(),
+				),
+			)
+		}
+		if providerCfg.PancakeSwap != nil {
+			providerPool.AddProvider(
+				prices.NewProvider(
+					providerCfg.Name,
+					prices.NewPancakeSwap(providerCfg.PancakeSwap, cfg.AssetsData.EthNetworks["BSC"]).GetterFunc(),
+					providerCfg.Every(),
+				),
+			)
+		}
 	}
 
 	//if len(cfg.Providers.Coingeckos) > 0 {
