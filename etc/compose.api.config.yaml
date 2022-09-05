@@ -1,0 +1,30 @@
+api:
+  port: "8080"
+  openapi_path: "/usr/local/share/hmq/prices.openapi.yaml"
+  base_url: "http://localhost:9002"
+assets:
+  - btc
+  - eth
+  - usd
+  - eur
+  - rub
+  - bnb
+  - cny
+  - jpy
+currencies:
+  btc: btc
+  eth: eth
+  usd: usd
+  eur: eur
+  rub: rub
+  bnb: bnb
+  cny: cny
+  jpy: jpy
+  tzs: usd
+  ugx: usd
+  frw: usd
+  krw: usd
+backend:
+  gcloud_datastore:
+    project_id: "humaniq-168420"
+    price_assets_kind: "develop_price_assets"

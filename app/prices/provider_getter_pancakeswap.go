@@ -32,14 +32,14 @@ func (ps *PancakeSwap) GetterFunc() ProviderFunc {
 			}
 			values = append(values, price.Value{
 				TimeStamp: time.Now(),
-				Source:    "pankaceswap",
+				Source:    "pancakeswap",
 				Symbol:    smb,
 				Currency:  "usd",
 				Price:     rates.PriceUsd,
 			})
 			values = append(values, price.Value{
 				TimeStamp: time.Now(),
-				Source:    "pankaceswap",
+				Source:    "pancakeswap",
 				Symbol:    smb,
 				Currency:  "bnb",
 				Price:     rates.PriceBNB,

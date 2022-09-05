@@ -1,7 +1,7 @@
 api:
   port: "8080"
-  openapi_path: "/usr/local/share/prices_old.openapi.yaml"
-  base_url: "http://localhost:9002"
+  openapi_path: "/usr/local/share/hmq/prices.openapi.yaml"
+  base_url: "https://apifinance.humaniq.com"
 assets:
   - btc
   - eth
@@ -27,4 +27,4 @@ currencies:
 backend:
   gcloud_datastore:
     project_id: "humaniq-168420"
-    price_assets_kind: "develop_price_assets"
+    price_assets_kind: "production_price_assets"

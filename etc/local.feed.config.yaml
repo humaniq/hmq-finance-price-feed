@@ -97,6 +97,6 @@ thresholds:
       percent_threshold: 0.25
 asset_files:
   coingecko:
-    - assets/coingecko.assets.yaml
+    - etc/assets/coingecko.assets.yaml
   eth:
-    - assets/network.bsc.assets.yaml
+    - etc/assets/network.bsc.assets.yaml
