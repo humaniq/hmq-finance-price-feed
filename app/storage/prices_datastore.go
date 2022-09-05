@@ -11,59 +11,17 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 )
 
-type dsPricesAsset struct {
-	Key       string            `datastore:"key"`
-	TimeStamp time.Time         `datastore:"timeStamp,noindex"`
-	Prices    []price.Value     `datastore:"prices,noindex"`
+type dsPriceAsset struct {
+	Currency  string            `datastore:"currency"`
+	Symbol    string            `datastore:"symbol"`
+	TimeStamp time.Time         `datastore:"timestamp,noindex"`
+	Price     price.Value       `datastore:"price,noindex"`
 	History   []dsHistoryRecord `datastore:"history,noindex"`
 }
+
 type dsHistoryRecord struct {
-	Symbol    string    `datastore:"key,noindex"`
 	TimeStamp time.Time `datastore:"timestamp,noindex"`
 	Price     float64   `datastore:"price,noindex"`
-}
-
-func (r *dsPricesAsset) ToAsset() *price.Asset {
-	prices := price.NewAsset(r.Key)
-	names := make([]string, 0, len(r.Prices))
-	for _, priceValue := range r.Prices {
-		names = append(names, priceValue.Symbol)
-		prices.Prices[priceValue.Symbol] = priceValue
-	}
-	for _, historyRecord := range r.History {
-		item, found := prices.History[historyRecord.Symbol]
-		if !found {
-			item = price.History{}
-		}
-		item = append(item, price.HistoryRecord{
-			TimeStamp: historyRecord.TimeStamp,
-			Price:     historyRecord.Price,
-		})
-		prices.History[historyRecord.Symbol] = item
-	}
-	return prices
-}
-func dsPricesRecordFromAsset(value *price.Asset) *dsPricesAsset {
-	values := make([]price.Value, 0, len(value.Prices))
-	for _, priceValue := range value.Prices {
-		values = append(values, priceValue)
-	}
-	var history []dsHistoryRecord
-	for symbol, priceHistory := range value.History {
-		for _, historyItem := range priceHistory {
-			history = append(history, dsHistoryRecord{
-				Symbol:    symbol,
-				TimeStamp: historyItem.TimeStamp,
-				Price:     historyItem.Price,
-			})
-		}
-	}
-	return &dsPricesAsset{
-		Key:       value.Name,
-		TimeStamp: time.Now(),
-		Prices:    values,
-		History:   history,
-	}
 }
 
 type PricesDS struct {
@@ -74,36 +32,72 @@ func NewPricesDS(client *gds.Client) *PricesDS {
 	return &PricesDS{client: client}
 }
 
-func (ds *PricesDS) SavePrices(ctx context.Context, key string, value *price.Asset) error {
-	if err := dsWritePrices(ctx, ds.client, key, dsPricesRecordFromAsset(value)); err != nil {
-		return fmt.Errorf("%w: %s", ErrWriting, err)
+func (pds *PricesDS) SavePrices(ctx context.Context, key string, value *price.Asset) error {
+	assets := make([]*dsPriceAsset, 0, len(value.Prices))
+	for symbol, val := range value.Prices {
+		asset := dsPriceAsset{
+			Currency:  val.Currency,
+			Symbol:    val.Symbol,
+			TimeStamp: val.TimeStamp,
+			Price:     val,
+		}
+		history, found := value.History[symbol]
+		if found && len(history) > 0 {
+			asset.History = make([]dsHistoryRecord, 0, len(history))
+			for _, record := range history {
+				asset.History = append(asset.History, dsHistoryRecord{
+					TimeStamp: record.TimeStamp,
+					Price:     record.Price,
+				})
+			}
+		}
+		assets = append(assets, &asset)
 	}
-	return nil
+	return dsSavePrices(ctx, pds.client, assets)
 }
-func (ds *PricesDS) LoadPrices(ctx context.Context, key string) (*price.Asset, error) {
-	pricesDS, err := dsReadPrices(ctx, ds.client, key)
+func (pds *PricesDS) LoadPrices(ctx context.Context, key string) (*price.Asset, error) {
+	dsAssets, err := dsReadPrices(ctx, pds.client, key)
 	if err != nil {
-		return nil, err
-	}
-	return pricesDS.ToAsset(), nil
-}
-
-func dsWritePrices(ctx context.Context, ds *gds.Client, key string, record *dsPricesAsset) error {
-	if err := ds.Write(ctx, toPricesDSKey(key), record); err != nil {
-		return fmt.Errorf("%w: %s", ErrWriting, err)
-	}
-	return nil
-}
-func dsReadPrices(ctx context.Context, ds *gds.Client, key string) (*dsPricesAsset, error) {
-	var prices dsPricesAsset
-	if err := ds.Read(ctx, toPricesDSKey(key), &prices); err != nil {
 		if errors.Is(err, gds.ErrNotFound) {
 			return nil, app.ErrNotFound
 		}
-		return nil, fmt.Errorf("%w: %s", ErrReading, err)
+		return nil, err
 	}
-	return &prices, nil
+	asset := price.NewAsset(key)
+	for _, dsAsset := range dsAssets {
+		priceVal := dsAsset.Price
+		asset.Prices[dsAsset.Symbol] = price.Value{
+			TimeStamp: priceVal.TimeStamp,
+			Source:    priceVal.Source,
+			Symbol:    priceVal.Symbol,
+			Currency:  priceVal.Currency,
+			Price:     priceVal.Price,
+		}
+		history := make([]price.HistoryRecord, 0, len(dsAsset.History))
+		for _, dsHistoryVal := range dsAsset.History {
+			history = append(history, price.HistoryRecord{
+				TimeStamp: dsHistoryVal.TimeStamp,
+				Price:     dsHistoryVal.Price,
+			})
+		}
+		asset.History[dsAsset.Symbol] = history
+	}
+	return asset, nil
 }
-func toPricesDSKey(symbol string) string {
-	return symbol
+
+func dsSavePrices(ctx context.Context, ds *gds.Client, records []*dsPriceAsset) error {
+	valuesMap := make(map[string]interface{})
+	for _, value := range records {
+		valuesMap[toPricesDSKey(value.Currency, value.Symbol)] = value
+	}
+	return gds.WriteMultiple(ctx, ds, valuesMap)
+}
+func dsReadPrices(ctx context.Context, ds *gds.Client, currency string) ([]dsPriceAsset, error) {
+	return gds.ReadMultipleByFilters[dsPriceAsset](ctx, ds, []gds.Filter{{
+		Str:   "currency =",
+		Value: currency,
+	}})
+}
+func toPricesDSKey(currency string, symbol string) string {
+	return fmt.Sprintf("%s_%s", currency, symbol)
 }

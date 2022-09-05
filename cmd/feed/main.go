@@ -2,137 +2,170 @@ package main
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app/price"
+	"github.com/humaniq/hmq-finance-price-feed/app/storage"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/ethereum"
+	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"os"
 	"strconv"
-	"sync"
-	"time"
 
 	"github.com/humaniq/hmq-finance-price-feed/app"
 	"github.com/humaniq/hmq-finance-price-feed/app/config"
-	"github.com/humaniq/hmq-finance-price-feed/app/feed"
-	"github.com/humaniq/hmq-finance-price-feed/app/price"
 	"github.com/humaniq/hmq-finance-price-feed/app/prices"
-	"github.com/humaniq/hmq-finance-price-feed/app/state"
-	"github.com/humaniq/hmq-finance-price-feed/app/storage"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 )
-
-const defaultProviderTickPeriod = time.Minute * 5
 
 func main() {
 
-	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
-		if logLevelNumeric, err := strconv.ParseUint(logLevel, 10, 8); err == nil {
-			logger.InitDefault(uint8(logLevelNumeric))
-		} else {
-			logger.InitDefault(blogger.StringToLevel(logLevel))
-		}
-	}
 	ctx := context.Background()
 
-	configPath := os.Getenv("CONFIG_FILE_PATH")
+	logLevel := blogger.LevelDefault
+	if logLevelEnv := os.Getenv("LOG_LEVEL"); logLevelEnv != "" {
+		if logLevelNumeric, err := strconv.ParseUint(logLevelEnv, 10, 8); err == nil {
+			logLevel = uint8(logLevelNumeric)
+		} else {
+			logLevel = blogger.StringToLevel(logLevelEnv)
+		}
+	}
+	app.InitLogger(
+		blogger.NewLog(
+			[]blogger.LoggerMiddlewareFunc{
+				blogger.LogLevelFilter(logLevel),
+				blogger.LevelPrefix(),
+				blogger.CurrentTimeFormat("(2006-01-02)(15:04:05MST)"),
+				blogger.CtxStringValues("uid", "tag"),
+			},
+			blogger.NewIOWriterRouter(os.Stdout, os.Stderr, os.Stderr, true)),
+	)
+
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "develop"
+	}
+
+	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "/etc/hmq/price-feed.yaml"
+		configPath = fmt.Sprintf("/etc/hmq/%s.price-feed.config.yaml", environment)
 	}
-	cfg, err := config.FeedConfigFromFile(configPath)
+	secretPath := os.Getenv("SECRET_PATH")
+	if secretPath == "" {
+		secretPath = "/secret"
+	}
+
+	cfg, err := config.PriceFeedConfigFromFile(configPath)
 	if err != nil {
-		logger.Fatal(ctx, "error getting config: %s", err)
+		app.Logger().Fatal(ctx, "ERROR READING CONFIG: %s", err)
+		return
+	}
+	cfg.OverridesFromEnv()
+
+	app.Logger().Info(ctx, "CONFIG: %+v", *cfg)
+
+	providerPool := prices.NewProviderPool()
+
+	if len(cfg.Providers) == 0 {
+		app.Logger().Fatal(ctx, "NO PROVIDERS GIVEN")
 		return
 	}
 
-	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
-	if dsKind == "" {
-		dsKind = "hmq_price_assets"
-	}
-	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
-	if err != nil {
-		logger.Fatal(ctx, "gdsClient init: %s", err)
-		return
-	}
-	backend := storage.NewPricesDSv2(gdsClient)
+	consumerState := prices.NewConsumerState(prices.SymbolCurrencyStateKey)
 
-	pricesState := make(map[string]*state.AssetCommitter)
-	for _, currency := range cfg.Assets {
-		currencyState, err := backend.LoadPrices(ctx, currency)
-		if err != nil {
-			if !errors.Is(err, app.ErrNotFound) {
-				logger.Fatal(ctx, "prices state init: %s", err)
+	consumer := prices.NewConsumer().WithFilters(
+		prices.AnyOf(
+			consumerState.TimeDeltaThresholdsFunc(cfg.Thresholds),
+			consumerState.PercentThresholdsFunc(cfg.Thresholds),
+		),
+	)
+	consumer.AddWorker(&prices.LogWorker{})
+	consumer.AddStateWorker(consumerState)
+
+	for _, providerCfg := range cfg.Providers {
+		if providerCfg.GeoCurrency != nil {
+			providerPool.AddProvider(
+				prices.NewProvider(providerCfg.Name, prices.GeoCurrencyProviderFunc(providerCfg.GeoCurrency), providerCfg.Every()),
+			)
+		}
+		if providerCfg.CoinGecko != nil {
+			providerPool.AddProvider(
+				prices.NewProvider(
+					providerCfg.Name,
+					prices.NewCoingecko(cfg.AssetsData.CoinGecko).GetterFunc(providerCfg.CoinGecko.Symbols, providerCfg.CoinGecko.Currencies),
+					providerCfg.Every(),
+				),
+			)
+		}
+		if providerCfg.PancakeSwap != nil {
+			providerPool.AddProvider(
+				prices.NewProvider(
+					providerCfg.Name,
+					prices.NewPancakeSwap(providerCfg.PancakeSwap, cfg.AssetsData.EthNetworks["BSC"]).GetterFunc(),
+					providerCfg.Every(),
+				),
+			)
+			consumer = consumer.WithEnrich(consumerState.EnrichFunc(
+				providerCfg.PancakeSwap.Symbols,
+				providerCfg.PancakeSwap.AssetMapper,
+				cfg.Assets))
+		}
+	}
+
+	for _, storageCfg := range cfg.Consumers {
+		if storageCfg.GoogleDataStore != nil {
+			ds, err := gds.NewClient(ctx, storageCfg.GoogleDataStore.ProjectID(), storageCfg.GoogleDataStore.PriceAssetsKind())
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL GETTING Google Datastore Backend: %s", err)
 				return
 			}
-			currencyState = price.NewAsset(currency)
+			storageWorker := prices.NewStorageWriteWorker(storage.NewPricesDS(ds))
+			consumer.AddWorker(storageWorker)
 		}
-		pricesState[currency] = state.NewAssetCommitter(currencyState).WithFilters(
-			state.CommitValueCurrenciesFilterFunc(map[string]bool{currency: true}),
-			state.CommitValuePriceDiffOrTimestampDiffFilterFunc(cfg.Diffs, config.NewTSDiffsFromSeconds(cfg.ForceUpdateSeconds)),
-		)
+		if storageCfg.PriceOracle != nil {
+			app.Logger().Info(ctx, "PRICE_ORACLE: %+v", storageCfg.PriceOracle)
+			network, found := cfg.AssetsData.EthNetworks[storageCfg.PriceOracle.NetworkKey]
+			if !found {
+				app.Logger().Fatal(ctx, "FAIL GETTING NETWORK %s", storageCfg.PriceOracle.NetworkKey)
+				return
+			}
+			app.Logger().Info(ctx, "NETWORK: %+v", network)
+			conn, err := ethereum.NewTransactConnection(network.RawUrl, network.ChainId, storageCfg.PriceOracle.ClientPrivateKey, 30000)
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL ESTABLISHING ETH CONNECTION %s: %s", storageCfg.PriceOracle.NetworkKey, err)
+				return
+			}
+			oracleWriter, err := ethereum.NewPriceOracleWriter(conn, storageCfg.PriceOracle.ContractAddressHex)
+			if err != nil {
+				app.Logger().Fatal(ctx, "FAIL CONNECTING CONTRACT %s", storageCfg.PriceOracle.ContractAddressHex)
+				return
+			}
+			tokenValues := make([]price.Value, 0, len(storageCfg.Tokens))
+			tokenMap := make(map[string]config.EthNetworkSymbolContract)
+			for _, token := range storageCfg.Tokens {
+				tokenValues = append(tokenValues, price.Value{
+					Symbol:   token.Symbol,
+					Currency: token.Currency,
+				})
+
+				tokenMap[token.Symbol] = network.Symbols[token.Symbol]
+			}
+
+			oracleState := prices.NewConsumerState(prices.SymbolCurrencyStateKey).WithValues(tokenValues...)
+			oracle := prices.NewConsumerWorkerFilterWpapper(
+				oracleState.ValueExists,
+			).Wrap(prices.NewPriceOracleWriteWorker(tokenMap, oracleWriter))
+			consumer.AddWorker(oracle)
+		}
 	}
 
-	dsConsumer := feed.NewStorageConsumer("DS", backend, pricesState)
-
-	if contractUrl := os.Getenv("CONTRACT_PRICES_URL"); contractUrl != "" {
-		chainIdString := os.Getenv("CONTRACT_CHAIN_ID")
-		chainId, err := strconv.ParseInt(chainIdString, 10, 64)
-		if err != nil {
-			chainId = 1337
-		}
-		contractBackend, err := storage.NewPricesContractSetter(
-			contractUrl,
-			chainId,
-			os.Getenv("CONTRACT_PRICES_ADDRESS"),
-			os.Getenv("CONTRACT_PRICES_PRIVATE_KEY"),
-		)
-		if err != nil {
-			logger.Fatal(ctx, "err getting contract backend: %s", err)
-			return
-		}
-
-		ps := make(map[string]*state.AssetCommitter)
-		ps["usd"] = pricesState["usd"]
-		ps["eur"] = pricesState["eur"]
-
-		contractConsumer := feed.NewStorageConsumer("CONTRACT", contractBackend, ps)
-		go contractConsumer.Run()
-		defer contractConsumer.WaitForDone()
-		dsConsumer = dsConsumer.WithNext(
-			contractConsumer,
-		)
+	if err := consumer.Consume(ctx, providerPool.Feed()); err != nil {
+		app.Logger().Fatal(ctx, "CONSUMER FAILED: %s", err)
+		return
 	}
+	defer consumer.WaitForDone()
 
-	go dsConsumer.Run()
-	defer dsConsumer.WaitForDone()
-
-	var wg sync.WaitGroup
-	wg.Add(len(cfg.Providers))
-	defer wg.Wait()
-
-	for _, provider := range cfg.Providers {
-		switch provider.Type {
-		case "coingecko":
-			logger.Info(ctx, "%+v", provider)
-			go func(providerConfig config.ProviderConfig) {
-				defer wg.Done()
-				defer dsConsumer.Release()
-				if err := feed.NewCoinGeckoProvider(defaultProviderTickPeriod, prices.NewCoinGecko(), providerConfig.Symbols, providerConfig.Currencies).
-					Provide(ctx, dsConsumer.Lease()); err != nil {
-					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
-				}
-			}(provider)
-		case "geocurrency":
-			go func(providerConfig config.ProviderConfig) {
-				defer wg.Done()
-				defer dsConsumer.Release()
-				geoCurrencyProvider := feed.NewGeoCurrencyPriceProvider(defaultProviderTickPeriod, prices.NewIPCurrencyAPI(os.Getenv("GEO_CURRENCY_KEY")), providerConfig.Symbols, providerConfig.Currencies)
-				if err := geoCurrencyProvider.Provide(ctx, dsConsumer.Lease()); err != nil {
-					logger.Fatal(ctx, "%s provider fail: %s", providerConfig.Name, err.Error())
-				}
-			}(provider)
-		default:
-			logger.Fatal(ctx, "UNKNOWN PROVIDER: %s", provider.Type)
-			return
-		}
+	if err := providerPool.Start(ctx); err != nil {
+		app.Logger().Fatal(ctx, "PROVIDER START FAILED: %s", err)
+		return
 	}
 
 }

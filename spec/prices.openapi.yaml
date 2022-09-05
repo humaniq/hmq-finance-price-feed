@@ -1,10 +1,12 @@
 openapi: 3.0.3
 info:
   title: 'Prices cache API'
-  version: '1.0.0'
+  version: '1.1.0'
   description: 'Prices Cache API'
 servers:
   - url: 'https://apifinance.humaniq.com/api/v1'
+    description: 'production environment'
+  - url: 'https://apifinance.dev.humaniq.com/api/v1'
     description: 'development/testing environment'
 components:
   schemas:
@@ -37,7 +39,7 @@ paths:
   /prices/list:
     get:
       tags:
-        - prices
+        - prices_old
       parameters:
         - name: symbol
           in: query
