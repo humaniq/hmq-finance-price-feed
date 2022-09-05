@@ -1,0 +1,63 @@
+version: '3.3'
+
+services:
+  prices-feed:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: ./
+      dockerfile: docker/price.feed.dockerfile
+    image: "hmq.price.feed:${IMAGE_TAG:-compose}"
+    environment:
+      - "ENVIRONMENT=${ENVIRONMENT:-compose}"
+      - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
+      - "BSC_ORACLE_PRIVATE_KEY=${BSC_ORACLE_PRIVATE_KEY:-}"
+      - "CONFIG_PATH=${FEED_CONFIG_PATH:-/etc/hmq/compose.feed.config.yaml}"
+      - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
+      - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
+      - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
+      - "GETGEO_API_KEY=${GETGEO_API_KEY:-}"
+    networks:
+      app:
+        ipv4_address: ${NETWORK_PREFIX:-173.200.202}.11
+        aliases:
+          - price-api.${APP_NAME:-app}.compose
+    volumes:
+      - ./.local/secret:/secret
+      - ./etc:/etc/hmq
+
+  prices-api:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: ./
+      dockerfile: docker/price.api.dockerfile
+    image: "hmq.price.api:${IMAGE_TAG:-compose}"
+    environment:
+      - "ENVIRONMENT=${ENVIRONMENT:-compose}"
+      - "LOG_LEVEL=${LOG_LEVEL:-INFO}"
+      - "CONFIG_PATH=${CONFIG_PATH:-/etc/hmq/compose.api.config.yaml}"
+      - "LISTEN=${LISTEN:-}"
+      - "PORT=${PORT:-8080}"
+      - "OPENAPI_PATH=${OPENAPI_PATH:-/usr/local/share/hmq/prices.openapi.yaml}"
+      - "GOOGLE_APPLICATION_CREDENTIALS=/secret/gcloud.json"
+      - "DATASTORE_PROJECT_ID=${DATASTORE_PROJECT_ID:-}"
+      - "DATASTORE_PRICE_ASSETS_KIND=${DATASTORE_PRICE_ASSETS_KIND:-}"
+      - "PERMANENT_TOKEN=${PERMANENT_TOKEN:-}"
+      - "BASE_URL=${BASE_URL:-}"
+    ports:
+      - "${PUBLIC_PORT:-8080}:${PORT:-8080}"
+    networks:
+      app:
+        ipv4_address: ${NETWORK_PREFIX:-173.200.202}.10
+        aliases:
+          - price-api.${APP_NAME:-app}.compose
+    volumes:
+      - ./.local/secret:/secret
+      - ./etc:/etc/hmq
+
+networks:
+  app:
+    ipam:
+      config:
+        - subnet: "${NETWORK_PREFIX:-173.200.202}.0/24"

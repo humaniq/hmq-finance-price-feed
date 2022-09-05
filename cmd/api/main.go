@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/humaniq/hmq-finance-price-feed/app"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 	"github.com/humaniq/hmq-finance-price-feed/pkg/blogger"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/gds"
 	"github.com/humaniq/hmq-finance-price-feed/pkg/httpapi"
-	"github.com/humaniq/hmq-finance-price-feed/pkg/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -28,37 +28,36 @@ func main() {
 
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
 		if logLevelNumeric, err := strconv.ParseUint(logLevel, 10, 8); err == nil {
-			logger.InitDefault(uint8(logLevelNumeric))
+			app.InitDefaultLogger(uint8(logLevelNumeric))
 		} else {
-			logger.InitDefault(blogger.StringToLevel(logLevel))
+			app.InitDefaultLogger(blogger.StringToLevel(logLevel))
 		}
 	}
 	ctx := context.Background()
 
-	configPath := os.Getenv("CONFIG_FILE_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "/etc/hmq/price-api.yaml"
+		configPath = "/etc/hmq/price-api.config.yaml"
 	}
 	cfg, err := config.ApiConfigFromFile(configPath)
 	if err != nil {
-		logger.Fatal(ctx, "error getting config: %s", err)
+		app.Logger().Fatal(ctx, "error getting config: %s", err)
 		return
 	}
 
-	dsKind := os.Getenv("DATASTORE_PRICES_KIND")
-	if dsKind == "" {
-		dsKind = "hmq_price_assets"
-	}
-	gdsClient, err := gds.NewClient(ctx, os.Getenv("DATASTORE_PROJECT_ID"), dsKind)
+	app.Logger().Info(ctx, "STARTING WITH: %+v", cfg)
+
+	gdsClient, err := gds.NewClient(ctx, cfg.Backend.GoogleDataStore.ProjectID(), cfg.Backend.GoogleDataStore.PriceAssetsKind())
 	if err != nil {
-		logger.Fatal(ctx, "gdsClient init: %s", err)
+		app.Logger().Fatal(ctx, "gdsClient init: %s", err)
 		return
 	}
-	dsBackend := storage.NewPricesDSv2(gdsClient)
+	dsBackend := storage.NewPricesDS(gdsClient)
 
 	backend := storage.NewInMemory(time.Minute*10).Wrap(dsBackend).Warm(context.Background(), cfg.Assets, time.Minute*9)
 
 	router := chi.NewRouter()
+	router.Use(httpapi.RequestUidMiddleware(httpapi.CtxRequestUidKey))
 	router.Group(func(r chi.Router) {
 		r.Use(
 			chim.Logger,
@@ -86,14 +85,14 @@ func main() {
 	})
 
 	sslHost := os.Getenv("APP_SSL_HOST")
-	listenOn := os.Getenv("APP_LISTEN_ON")
+	listenOn := cfg.API.Listen()
 
 	httpServer := &http.Server{Handler: router}
 
 	if sslHost != "" {
-		logger.Debug(ctx, "SSL enabled")
+		app.Logger().Debug(ctx, "SSL enabled")
 		if sslCacheDir := os.Getenv("SSL_CACHE_DIR"); sslCacheDir != "" {
-			logger.Debug(ctx, "SSL cache")
+			app.Logger().Debug(ctx, "SSL cache")
 			sslManager := &autocert.Manager{
 				Prompt: autocert.AcceptTOS,
 				HostPolicy: func(ctx context.Context, host string) error {
@@ -107,10 +106,10 @@ func main() {
 			httpServer.TLSConfig = &tls.Config{GetCertificate: sslManager.GetCertificate}
 		}
 		if sslDir := os.Getenv("SSL_DIR"); sslDir != "" {
-			logger.Debug(ctx, "SSL existing certs")
+			app.Logger().Debug(ctx, "SSL existing certs")
 			cert, err := tls.LoadX509KeyPair(filepath.Join(sslDir, sslHost, "fullchain.pem"), filepath.Join(sslDir, sslHost, "privkey.pem"))
 			if err != nil {
-				logger.Fatal(ctx, err.Error())
+				app.Logger().Fatal(ctx, err.Error())
 				return
 			}
 			httpServer.TLSConfig = &tls.Config{
@@ -123,10 +122,10 @@ func main() {
 		}
 		httpServer.Addr = listenOn
 
-		logger.Info(ctx, "Prices API: listening (SSL=%s) on %s", sslHost, listenOn)
+		app.Logger().Info(ctx, "Prices Config: listening (SSL=%s) on %s", sslHost, listenOn)
 
 		if err := httpServer.ListenAndServeTLS("", ""); err != nil {
-			logger.Fatal(ctx, err.Error())
+			app.Logger().Fatal(ctx, err.Error())
 			return
 		}
 		return
@@ -138,10 +137,10 @@ func main() {
 
 	httpServer.Addr = listenOn
 
-	logger.Info(ctx, "Prices API: listening on %s", listenOn)
+	app.Logger().Info(ctx, "Prices Config: listening on %s", listenOn)
 
 	if err := httpServer.ListenAndServe(); err != nil {
-		logger.Fatal(ctx, err.Error())
+		app.Logger().Fatal(ctx, err.Error())
 	}
 
 }

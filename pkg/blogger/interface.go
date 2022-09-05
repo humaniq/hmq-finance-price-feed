@@ -16,6 +16,8 @@ type Logger interface {
 	Unsafe(ctx context.Context, text string, args ...interface{})
 }
 
+type LoggerMiddlewareFunc func(next BufferedHandler) BufferedHandler
+
 type BufferedHandler interface {
 	HandleLogBuffer(ctx context.Context, level uint8, b bytes.Buffer, text string, args ...interface{})
 }
