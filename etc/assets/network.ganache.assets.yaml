@@ -1,6 +1,7 @@
-name: "Binance Smart Chain"
-raw_url: "https://bsc-dataseed1.binance.org/"
-chain_id: 56
+key: Ganache-Cubic
+name: Ganache-Cubic
+raw_url: "http://ganache.cubic.local:30101"
+chain_id: 1337
 symbols:
   wbgl:
     address_hex: "0x2bA64EFB7A4Ec8983E22A49c81fa216AC33f383A"
