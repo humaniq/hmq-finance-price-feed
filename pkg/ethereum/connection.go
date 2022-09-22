@@ -70,6 +70,7 @@ func (tc *TransactConnection) TxBegin(ctx context.Context) (*bind.TransactOpts, 
 	auth := tc.auth
 	auth.GasPrice = gasPrice
 	auth.Nonce = big.NewInt(int64(nonce))
+	auth.GasLimit = 0
 	return auth, nil
 }
 func (tc *TransactConnection) TxEnd() {
